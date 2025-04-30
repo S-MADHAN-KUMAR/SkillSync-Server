@@ -1,0 +1,227 @@
+import { Request, Response } from "express";
+import { IEmployeeService } from "../../services/interface/IEmployeeService";
+import { IEmployeeController } from "../interface/IEmployeeController";
+import { StatusCode } from "../../utils/enums";
+import { JobPost, JobPostErrorMessages, UserSuccessMessages } from "../../utils/constants";
+import { uploadFileToCloudinary } from "../../utils/uploadToCloudinary";
+
+export class EmployeeController implements IEmployeeController {
+    private _employeeService: IEmployeeService;
+    constructor(_employeeService: IEmployeeService) {
+        this._employeeService = _employeeService;
+    }
+
+    async updateOrCreate(req: Request, res: Response): Promise<void> {
+        try {
+            const payload = req.body;
+            const id = req.params.id;
+            const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+            let logoUrl = '';
+            let bannerUrl = '';
+
+            if (files.logo && files.logo[0] && !(payload.logo && payload.logo.startsWith(process.env.CLOUDINARY_URL))) {
+                const logoFile = files.logo[0];
+                if (logoFile.mimetype.startsWith('image/')) {
+                    logoUrl = await uploadFileToCloudinary(logoFile.buffer, 'image', 'logo_images');
+                } else if (logoFile.mimetype === 'application/pdf') {
+                    logoUrl = await uploadFileToCloudinary(logoFile.buffer, 'pdf', 'pdf_files');
+                } else {
+                    throw new Error('Invalid file type for logo. Only image or PDF is allowed.');
+                }
+            } else if (payload.logo) {
+                logoUrl = payload.logo;
+            }
+
+            if (files.banner && files.banner[0] && !(payload.banner && payload.banner.startsWith(process.env.CLOUDINARY_URL))) {
+                const bannerFile = files.banner[0];
+                if (bannerFile.mimetype.startsWith('image/')) {
+                    bannerUrl = await uploadFileToCloudinary(bannerFile.buffer, 'image', 'banner_images');
+                } else if (bannerFile.mimetype === 'application/pdf') {
+                    bannerUrl = await uploadFileToCloudinary(bannerFile.buffer, 'pdf', 'pdf_files');
+                } else {
+                    throw new Error('Invalid file type for banner. Only image or PDF is allowed.');
+                }
+            } else if (payload.banner) {
+                bannerUrl = payload.banner;
+            }
+
+            payload.logo = logoUrl;
+            payload.banner = bannerUrl;
+
+            const { response, userData } = await this._employeeService.updateOrCreate(payload, id);
+
+            res.status(StatusCode.OK).json({
+                success: true,
+                message: UserSuccessMessages.USER_UPDATED,
+                user: userData,
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async getEmployeeProfile(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+            const employee = await this._employeeService.getEmployeeProfile(id)
+            res.status(StatusCode.OK).json({
+                success: true,
+                employee,
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async createJob(req: Request, res: Response): Promise<void> {
+        try {
+            const payload = req.body
+            const response = await this._employeeService.createJob(payload)
+            if (!response) {
+                res.status(StatusCode.BAD_REQUEST).json({
+                    success: false,
+                    message: JobPostErrorMessages.JOB_FAILD_TO_CREATE
+                });
+            }
+            res.status(StatusCode.OK).json({
+                success: true,
+                message: JobPost.JOB_CREATED
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async updateJob(req: Request, res: Response): Promise<void> {
+        try {
+            const payload = req.body
+            const id = req.params.id
+            const response = await this._employeeService.updateJob(payload, id)
+            if (!response) {
+                res.status(StatusCode.BAD_REQUEST).json({
+                    success: false,
+                    message: JobPostErrorMessages.JOB_FAILD_TO_CREATE
+                });
+            }
+            res.status(StatusCode.OK).json({
+                success: true,
+                message: JobPost.JOB_UPDATED
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async getAllJobs(req: Request, res: Response): Promise<void> {
+        try {
+            const page = Number(req.query.page) || 1;
+            const pageSize = Number(req.query.pageSize) || 10;
+
+            console.log(`Page: ${page}, Page Size: ${pageSize}`);
+
+            const { jobs, totalJobs } = await this._employeeService.getAllJobs(page, pageSize);
+
+            console.log('Total Jobs:', totalJobs);
+            console.log('Jobs:', jobs);
+
+            res.status(StatusCode.OK).json({
+                success: true,
+                jobs,
+                totalJobs,
+                totalPages: Math.ceil(totalJobs / pageSize),
+                currentPage: page
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+
+    }
+
+    async getRecentJobs(req: Request, res: Response): Promise<void> {
+        try {
+            const response = await this._employeeService.getRecentJobs()
+            res.status(StatusCode.OK).json({
+                success: true,
+                jobs: response
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async editJob(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+            const payload = req.body
+            await this._employeeService.editJob(id, payload)
+            res.status(StatusCode.OK).json({
+                success: true,
+                message: JobPost.JOB_UPDATED
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async getJobs(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+            const response = await this._employeeService.getJobs(id)
+            res.status(StatusCode.OK).json({
+                success: true,
+                job: response
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async removeJob(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+            const response = await this._employeeService.removeJob(id)
+            res.status(StatusCode.OK).json({
+                success: true,
+                message: JobPost.JOB_REMOVED
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+}
