@@ -11,7 +11,7 @@ const jobPostSchema = new mongoose.Schema<IJobPost>({
     education: { type: String, required: true },
     experience: { type: String, required: true },
     jobType: { type: String, required: true },
-    experienceDate: { type: String, required: true },
+    expiredAt: { type: Date, required: true },
     jobLevel: { type: String, required: true },
     vacancies: { type: Number, required: true },
     country: { type: String, required: true },

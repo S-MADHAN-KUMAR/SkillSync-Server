@@ -10,7 +10,7 @@ export interface IJobPost extends Document {
     education: string;
     experience: string;
     jobType: string;
-    experienceDate: string;
+    expiredAt: Date;
     jobLevel: string;
     vacancies: number;
     country: string;

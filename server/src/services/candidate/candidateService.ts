@@ -1,4 +1,5 @@
 import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
+import { IUser } from "../../interfaces/IUser";
 import { ICandidateRepository } from "../../repositories/interface/ICandidateRepository";
 import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { UserErrorMessages } from "../../utils/constants";
@@ -15,7 +16,7 @@ export class CandidateService implements ICandidateService {
         this._userRepository = _userRepository;
     }
 
-    async updateOrCreate(payload: Partial<ICandidateProfile>, id: string): Promise<ICandidateProfile | null> {
+    async updateOrCreate(payload: Partial<ICandidateProfile>, id: string): Promise<{ response: ICandidateProfile; user: IUser | null }> {
         const userFound = await this._userRepository.findOne({
             _id: id,
             role: 'candidate'
@@ -32,16 +33,26 @@ export class CandidateService implements ICandidateService {
 
         const candidateProfileExist = await this._candidateRepository.findOne({ userId: id });
 
-        let response: ICandidateProfile | null;
+        let response: ICandidateProfile;
 
         if (!candidateProfileExist) {
-            response = await this._candidateRepository.create(updatedPayload);
-            await this._userRepository.update(id, { candidateProfileId: response?._id })
-        } else {
-            response = await this._candidateRepository.update(candidateProfileExist?._id as string, updatedPayload);
-        }
+            const created = await this._candidateRepository.create(updatedPayload);
+            if (!created) {
+                throw new HttpError("Failed to create candidate profile", StatusCode.INTERNAL_SERVER_ERROR);
+            }
+            response = created;
+            const updatedUser = await this._userRepository.update(id, { candidateProfileId: response._id });
 
-        return response;
+            return { response, user: updatedUser };
+        } else {
+            const updated = await this._candidateRepository.update(candidateProfileExist._id as string, updatedPayload);
+            if (!updated) {
+                throw new HttpError("Failed to update candidate profile", StatusCode.INTERNAL_SERVER_ERROR);
+            }
+            response = updated;
+
+            return { response, user: userFound }; // already fetched user
+        }
     }
 
     async getCandidateProfile(id: string): Promise<ICandidateProfile | null> {

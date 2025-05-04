@@ -4,7 +4,7 @@ import { adminAuth } from "../middlewares/adminAuth";
 
 const router = Router();
 
-router.post('/admins/login', adminController.adminLogin.bind(adminController));
+router.post('/login', adminController.adminLogin.bind(adminController));
 
 router.get('/candidates', adminAuth, adminController.getCandidates.bind(adminController));
 

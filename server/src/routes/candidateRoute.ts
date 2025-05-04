@@ -6,9 +6,9 @@ const router = Router();
 
 // Update or create candidate profile (PUT for update)
 router.put(
-    '/candidates/:id/profile',
+    '/:id/profile',
     upload.fields([
-        { name: 'profile', maxCount: 1 },
+        { name: 'logo', maxCount: 1 },
         { name: 'banner', maxCount: 1 },
         { name: 'resume', maxCount: 1 }
     ]),
@@ -17,9 +17,10 @@ router.put(
 
 // Get candidate profile
 router.get(
-    '/candidates/:id/profile',
+    '/get/:id/profile',
     candidateController.getCandidateProfile.bind(candidateController)
 );
+
 
 const candidateRoutes = router;
 export default candidateRoutes;

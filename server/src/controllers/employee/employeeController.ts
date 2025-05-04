@@ -53,7 +53,7 @@ export class EmployeeController implements IEmployeeController {
             res.status(StatusCode.OK).json({
                 success: true,
                 message: UserSuccessMessages.USER_UPDATED,
-                user: userData,
+                employee: userData,
             });
         } catch (error) {
             const err = error as Error;
@@ -130,31 +130,46 @@ export class EmployeeController implements IEmployeeController {
 
     async getAllJobs(req: Request, res: Response): Promise<void> {
         try {
-            const page = Number(req.query.page) || 1;
-            const pageSize = Number(req.query.pageSize) || 10;
+            const page = parseInt(req.query.page as string) || 1;
+            const pageSize = parseInt(req.query.pageSize as string) || 10;
+            const query = (req.query.querys as string) || "";
+            const location = (req.query.location as string) || "";
+            const jobType = (req.query.jobType as string) || "";
+            const salary = (req.query.salary as string) || "";
+            const skill = (req.query.skill as string) || "";
+            const active = req.query.active !== undefined ? req.query.active === 'true' : undefined;
+            const expiredBefore = req.query.expiredBefore
+                ? new Date(req.query.expiredBefore as string)
+                : undefined;
 
-            console.log(`Page: ${page}, Page Size: ${pageSize}`);
-
-            const { jobs, totalJobs } = await this._employeeService.getAllJobs(page, pageSize);
-
-            console.log('Total Jobs:', totalJobs);
-            console.log('Jobs:', jobs);
+            const { jobs, totalJobs } = await this._employeeService.getAllJobs(
+                page,
+                pageSize,
+                query,
+                location,
+                jobType,
+                salary,
+                skill,
+                active,
+                expiredBefore
+            );
 
             res.status(StatusCode.OK).json({
                 success: true,
                 jobs,
                 totalJobs,
                 totalPages: Math.ceil(totalJobs / pageSize),
-                currentPage: page
+                currentPage: page,
             });
         } catch (error) {
             const err = error as Error;
+            console.error('Error fetching jobs:', err.message);
+
             res.status(StatusCode.BAD_REQUEST).json({
                 success: false,
                 message: err.message,
             });
         }
-
     }
 
     async getRecentJobs(req: Request, res: Response): Promise<void> {
@@ -170,6 +185,7 @@ export class EmployeeController implements IEmployeeController {
                 success: false,
                 message: err.message,
             });
+            console.log('Error:', err.message);
         }
     }
 
@@ -197,7 +213,7 @@ export class EmployeeController implements IEmployeeController {
             const response = await this._employeeService.getJobs(id)
             res.status(StatusCode.OK).json({
                 success: true,
-                job: response
+                jobs: response
             });
         } catch (error) {
             const err = error as Error;
@@ -208,13 +224,17 @@ export class EmployeeController implements IEmployeeController {
         }
     }
 
-    async removeJob(req: Request, res: Response): Promise<void> {
+    async toggleStatus(req: Request, res: Response): Promise<void> {
         try {
             const id = req.params.id
-            const response = await this._employeeService.removeJob(id)
+            const status = req.body.status
+            console.log('...............', status);
+
+            const response = await this._employeeService.toggleStatus(id, status)
             res.status(StatusCode.OK).json({
                 success: true,
-                message: JobPost.JOB_REMOVED
+                message: status ? JobPost.JOB_REMOVED : JobPost.JOB_RECOVERD
+
             });
         } catch (error) {
             const err = error as Error;

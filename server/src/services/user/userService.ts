@@ -1,7 +1,7 @@
 import { IUser } from "../../interfaces/IUser";
 import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { login, otp, resetPassword, status } from "../../types/types";
-import { UserErrorMessages, UserSuccessMessages } from "../../utils/constants";
+import { OTPErrorMessages, UserErrorMessages, UserSuccessMessages } from "../../utils/constants";
 import { StatusCode } from "../../utils/enums";
 import { hashPassword } from "../../utils/hashPassword";
 import { HttpError } from "../../utils/httpError";
@@ -76,6 +76,10 @@ export class UserService implements IUserService {
                 throw new HttpError(UserErrorMessages.USER_BLOCKED, StatusCode.UNAUTHORIZED);
             }
 
+            if (!userFound?.password) {
+                throw new HttpError(UserErrorMessages.USER_FAILED_TO_LOGGIN, StatusCode.UNAUTHORIZED);
+            }
+
             const isMatch = await bcrypt.compare(payload.password, userFound.password);
 
             if (!isMatch) {
@@ -87,7 +91,6 @@ export class UserService implements IUserService {
             throw error;
         }
     }
-
 
     async getUserWithEmail(email: string): Promise<IUser | null> {
         const response = await this._userRepository.findOne({ email })
@@ -120,7 +123,6 @@ export class UserService implements IUserService {
         }
     }
 
-
     async otpVerify(payload: { id: string; otp: string }): Promise<IUser | null> {
         const { id, otp } = payload;
 
@@ -139,10 +141,10 @@ export class UserService implements IUserService {
         }
 
         if (Number(otp) !== Number(existing.otp)) {
-            throw new HttpError(UserErrorMessages.USER_WRONG_OTP, StatusCode.BAD_REQUEST);
+            throw new HttpError(OTPErrorMessages.INCORRECT_OTP, StatusCode.BAD_REQUEST);
         }
 
-        await this._userRepository.update(id, {
+        await this._userRepository.updateNull(id, {
             otp: null,
             otpExpiry: null,
             isVerified: true,
@@ -179,7 +181,7 @@ export class UserService implements IUserService {
             try {
                 const foundUser = await this._userRepository.findById(updatedUser._id as string);
                 if (foundUser && foundUser.forgotOtpExpiry && foundUser.forgotOtpExpiry.getTime() < Date.now()) {
-                    await this._userRepository.update(foundUser._id as string, { forgotOtpExpiry: null, forgotOtp: null });
+                    await this._userRepository.updateNull(foundUser._id as string, { forgotOtpExpiry: null, forgotOtp: null });
                     console.log(`User with email ${foundUser.email} forgot OTP cleared after expiry.`);
                 }
             } catch (cleanupError) {
@@ -231,7 +233,6 @@ export class UserService implements IUserService {
         return updatedUser;
     }
 
-
     async forgotOtpVerify(payload: { id: string; otp: string }): Promise<IUser | null> {
         const { id, otp } = payload;
 
@@ -253,7 +254,7 @@ export class UserService implements IUserService {
             throw new HttpError(UserErrorMessages.USER_WRONG_OTP, StatusCode.BAD_REQUEST);
         }
 
-        await this._userRepository.update(id, {
+        await this._userRepository.updateNull(id, {
             forgotOtp: null,
             forgotOtpExpiry: null
         });
@@ -271,7 +272,6 @@ export class UserService implements IUserService {
             return null
         }
     }
-
 
     async getAllEmployees(page: number, pageSize: number): Promise<{ employees: IUser[] | null, totalEmployees: number }> {
         const skip = (page - 1) * pageSize;
@@ -306,7 +306,6 @@ export class UserService implements IUserService {
             throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.NOT_FOUND);
         }
     }
-
 
     async toggleStatus(payload: status): Promise<boolean> {
         if (!payload) {

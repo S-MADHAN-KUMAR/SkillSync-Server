@@ -15,12 +15,13 @@ export const GeneralServerErrorMsg = {
 export const JobPost = {
     JOB_CREATED: "Job post created successfully.",
     JOB_UPDATED: "Job post updated successfully",
-    JOB_REMOVED: "Job post removed successfully"
+    JOB_REMOVED: "Job post removed successfully",
+    JOB_RECOVERD: "Job post successfully recovered"
 }
 
 export const JobPostErrorMessages = {
     JOB_NOT_FOUND: "Job post not found.",
-    JOB_FAILD_TO_CREATE: "Job post failed to create"
+    JOB_FAILD_TO_CREATE: "Job post failed to create , Please complete company profile",
 }
 
 export const UserErrorMessages = {
@@ -31,7 +32,8 @@ export const UserErrorMessages = {
     USER_NOT_REGISTER: "User not exists, Please Register again!",
     USER_WRONG_OTP: "OTP Incorrect",
     OTP_EXPIRED: "OTP expired",
-    INVALID_PAYLOAD: "Invalid credentials"
+    INVALID_PAYLOAD: "Invalid credentials",
+    USER_FAILED_TO_LOGGIN: "User password not matched , Please reset your password",
 }
 
 export const UserSuccessMessages = {
@@ -43,20 +45,16 @@ export const UserSuccessMessages = {
     USER_PASSWORD_RESETED: "User password reseted successfully."
 }
 export const OTPSuccessMessages = {
-    USER_CREATED: "User account created successfully.",
-    USER_LOGGINED: "User loggined successfully.",
-    USER_UPDATED: "User account updated successfully",
-    USER_VERIFIED: "User account verified successfully",
-    USER_OTP_SENDED: "Forgot OTP sended successfully",
-    USER_PASSWORD_RESETED: "User password reseted successfully."
+    OTP_SENDED: "OTP sended successfully",
+    OTP_RESEND: "OTP resend successfully",
+    OTP_VERIFIED: "OTP verified successfully",
+    FORGOT_OTP_SENDED: "Forgot OTP sended successfully",
+    FORGOT_OTP_RESENDED: "Forgot OTP resended successfully",
+    FORGOT_OTP_VERIFIED: "Forgot OTP verified successfully",
 }
+
 export const OTPErrorMessages = {
-    USER_CREATED: "User account created successfully.",
-    USER_LOGGINED: "User loggined successfully.",
-    USER_UPDATED: "User account updated successfully",
-    USER_VERIFIED: "User account verified successfully",
-    USER_OTP_SENDED: "Forgot OTP sended successfully",
-    USER_PASSWORD_RESETED: "User password reseted successfully."
+    INCORRECT_OTP: "Incorrect OTP",
 }
 
 export const AdminErrorMessages = {

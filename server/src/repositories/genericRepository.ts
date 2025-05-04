@@ -8,6 +8,7 @@ export interface IGenericRepository<T extends Document> {
     findAll(filter?: object, skip?: number, limit?: number): Promise<T[]>;
     update(id: string, data: Partial<T>): Promise<T | null>;
     delete(id: string): Promise<Boolean>;
+    updateNull(id: string, data: Partial<T>): Promise<T | null>
 }
 
 export class GenericRepository<T extends Document>
@@ -57,5 +58,9 @@ export class GenericRepository<T extends Document>
     async delete(id: string): Promise<boolean> {
         const result = await this.model.findByIdAndDelete(id);
         return result !== null;
+    }
+
+    async updateNull(id: string, data: Partial<T>): Promise<T | null> {
+        return await this.model.findByIdAndUpdate(id, data, { new: true });
     }
 }

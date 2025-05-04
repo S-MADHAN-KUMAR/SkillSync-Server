@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { IUserService } from "../../services/interface/IUserService";
-import { UserSuccessMessages } from "../../utils/constants";
+import { OTPErrorMessages, OTPSuccessMessages, UserSuccessMessages } from "../../utils/constants";
 import { StatusCode } from "../../utils/enums";
 import { IUserController } from "../interface/IUserController";
 import { candidateGenerateToken, recruiterGenerateToken } from "../../utils/generateToken";
@@ -122,7 +122,7 @@ export class UserController implements IUserController {
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
-                    message: UserSuccessMessages.USER_VERIFIED,
+                    message: OTPSuccessMessages.OTP_VERIFIED,
                     token,
                     user: response,
                 });
@@ -146,7 +146,7 @@ export class UserController implements IUserController {
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
-                    message: UserSuccessMessages.USER_OTP_SENDED,
+                    message: OTPSuccessMessages.FORGOT_OTP_SENDED,
                     user: response,
                 });
             } else {
@@ -169,7 +169,7 @@ export class UserController implements IUserController {
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
-                    message: UserSuccessMessages.USER_OTP_SENDED,
+                    message: OTPSuccessMessages.OTP_RESEND,
                     user: response,
                 });
             } else {
@@ -192,7 +192,7 @@ export class UserController implements IUserController {
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
-                    message: UserSuccessMessages.USER_VERIFIED,
+                    message: OTPSuccessMessages.FORGOT_OTP_SENDED,
                     user: response,
                 });
             } else {

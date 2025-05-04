@@ -9,5 +9,5 @@ export interface IEmployeeController {
     editJob(req: Request, res: Response): Promise<void>
     getJobs(req: Request, res: Response): Promise<void>
     updateJob(req: Request, res: Response): Promise<void>
-    removeJob(req: Request, res: Response): Promise<void>
+    toggleStatus(req: Request, res: Response): Promise<void>
 }

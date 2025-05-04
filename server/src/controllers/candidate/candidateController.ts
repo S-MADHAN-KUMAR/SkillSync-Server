@@ -4,6 +4,7 @@ import { ICandidateControllers } from "../interface/ICandidateController";
 import { StatusCode } from "../../utils/enums";
 import { UserSuccessMessages } from "../../utils/constants";
 import { uploadFileToCloudinary } from "../../utils/uploadToCloudinary";
+import { log } from "console";
 
 export class CandidateController implements ICandidateControllers {
     private _candidateService: ICandidateService;
@@ -17,19 +18,19 @@ export class CandidateController implements ICandidateControllers {
             const id = req.params.id
 
             const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-            let profileUrl = '';
+            let logoUrl = '';
             let bannerUrl = '';
             let resumeUrl = '';
 
 
-            if (files.profile && files.profile[0]) {
-                const profileFile = files.profile[0];
-                if (profileFile.mimetype.startsWith('image/')) {
-                    profileUrl = await uploadFileToCloudinary(profileFile.buffer, 'image', 'profile_images');
-                } else if (profileFile.mimetype === 'application/pdf') {
-                    profileUrl = await uploadFileToCloudinary(profileFile.buffer, 'pdf', 'pdf_files');
+            if (files.logo && files.logo[0]) {
+                const logoFile = files.logo[0];
+                if (logoFile.mimetype.startsWith('image/')) {
+                    logoUrl = await uploadFileToCloudinary(logoFile.buffer, 'image', 'logo_images');
+                } else if (logoFile.mimetype === 'application/pdf') {
+                    logoUrl = await uploadFileToCloudinary(logoFile.buffer, 'pdf', 'pdf_files');
                 } else {
-                    throw new Error('Invalid file type for profile. Only image or PDF is allowed.');
+                    throw new Error('Invalid file type for logo. Only image or PDF is allowed.');
                 }
             }
 
@@ -55,8 +56,8 @@ export class CandidateController implements ICandidateControllers {
                 }
             }
 
-            if (payload.profile && !profileUrl) {
-                profileUrl = payload.profile;
+            if (payload.logo && !logoUrl) {
+                logoUrl = payload.logo;
             }
             if (payload.banner && !bannerUrl) {
                 bannerUrl = payload.banner;
@@ -65,15 +66,15 @@ export class CandidateController implements ICandidateControllers {
                 resumeUrl = payload.resume;
             }
 
-            payload.profile = profileUrl;
+            payload.logo = logoUrl;
             payload.banner = bannerUrl;
             payload.resume = resumeUrl;
-
-            const response = await this._candidateService.updateOrCreate(payload, id);
+            payload.userId = id
+            const { response, user } = await this._candidateService.updateOrCreate(payload, id);
             res.status(StatusCode.OK).json({
                 success: true,
                 message: UserSuccessMessages.USER_CREATED,
-                user: response,
+                user: user,
             });
         } catch (error) {
             const err = error as Error;
@@ -90,7 +91,7 @@ export class CandidateController implements ICandidateControllers {
             const response = await this._candidateService.getCandidateProfile(id)
             res.status(StatusCode.OK).json({
                 success: true,
-                response,
+                candidates: response,
             });
         } catch (error) {
             const err = error as Error;

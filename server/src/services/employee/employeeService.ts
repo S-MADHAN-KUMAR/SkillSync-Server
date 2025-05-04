@@ -63,10 +63,10 @@ export class EmployeeService implements IEmployeeService {
     }
 
     async createJob(payload: IJobPost): Promise<IJobPost | null> {
+
         if (!payload.employeeId) {
             throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.BAD_REQUEST);
         }
-
         const found = await this._employeeRepository.findOne({ userId: payload.employeeId });
 
         if (!found) {
@@ -95,16 +95,60 @@ export class EmployeeService implements IEmployeeService {
         }
     }
 
-    async getAllJobs(page: number, pageSize: number): Promise<{ jobs: IJobPost[] | null, totalJobs: number }> {
+    async getAllJobs(
+        page: number,
+        pageSize: number,
+        querys?: string,
+        location?: string,
+        jobType?: string,
+        salary?: string,
+        skill?: string,
+        active?: boolean,
+        expiredBefore?: Date
+    ): Promise<{ jobs: IJobPost[] | null; totalJobs: number }> {
+
         const skip = (page - 1) * pageSize;
+        const filter: any = {};
 
-        console.log(`Skipping: ${skip}, Limit: ${pageSize}`);
+        if (querys) {
+            filter.jobTitle = { $regex: querys, $options: 'i' };
+        }
 
-        const jobs = await this._jobRepository.findAll({}, skip, pageSize);
-        console.log('Retrieved Jobs:', jobs);
+        if (location) {
+            filter.state = { $regex: location, $options: 'i' };
+        }
 
-        const totalJobs = await this._jobRepository.countDocuments({});
-        console.log('Total Jobs Count:', totalJobs);
+        if (jobType) {
+            filter.jobType = jobType;
+        }
+
+        if (salary) {
+            const salaryValue = Number(salary);
+            if (!isNaN(salaryValue)) {
+                filter.$or = [
+                    { minSalary: { $lte: salaryValue } },
+                    { maxSalary: { $gte: salaryValue } }
+                ];
+            }
+        }
+
+        if (skill) {
+            filter.tags = { $in: [skill] };
+        }
+
+        if (active && typeof active === 'boolean') {
+            filter.status = active;
+        }
+
+        if (
+            expiredBefore &&
+            expiredBefore instanceof Date) {
+            filter.expiredAt = { $gte: expiredBefore };
+        }
+
+
+        const jobs = await this._jobRepository.findAll(filter, skip, pageSize);
+        const totalJobs = await this._jobRepository.countDocuments(filter);
 
         if (jobs) {
             return { jobs, totalJobs };
@@ -140,12 +184,16 @@ export class EmployeeService implements IEmployeeService {
         }
     }
 
-    async removeJob(id: string): Promise<Boolean | null> {
-        const response = await this._jobRepository.update(id, { status: false })
-        if (response) {
-            return true
-        } else {
-            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND)
+    async toggleStatus(id: string, currentStatus: boolean): Promise<boolean> {
+
+        const updatedStatus = !currentStatus;
+        console.log("Updated Status:", updatedStatus);
+
+        const response = await this._jobRepository.update(id, { status: updatedStatus });
+        if (!response) {
+            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND);
         }
+        return true;
     }
+
 }
