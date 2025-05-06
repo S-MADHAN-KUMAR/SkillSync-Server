@@ -273,14 +273,21 @@ export class UserService implements IUserService {
         }
     }
 
-    async getAllEmployees(page: number, pageSize: number): Promise<{ employees: IUser[] | null, totalEmployees: number }> {
+    async getAllEmployees(
+        page: number,
+        pageSize: number,
+        querys?: string
+    ): Promise<{ employees: IUser[] | null; totalEmployees: number }> {
         const skip = (page - 1) * pageSize;
 
-        const employees = await this._userRepository.findAll({ role: 'employee' }, skip, pageSize);
-        console.log('Retrieved employees:', employees);
+        const filter: any = { role: 'employee' };
+        if (querys) {
+            filter.name = { $regex: querys, $options: 'i' };
+        }
 
-        const totalEmployees = await this._userRepository.countDocuments({ role: 'employee' });
-        console.log('Total employees Count:', totalEmployees);
+        const employees = await this._userRepository.findAll(filter, skip, pageSize);
+
+        const totalEmployees = await this._userRepository.countDocuments(filter);
 
         if (employees) {
             return { employees, totalEmployees };
@@ -289,16 +296,20 @@ export class UserService implements IUserService {
         }
     }
 
-    async getAllCandidates(page: number, pageSize: number): Promise<{ candidates: IUser[] | null, totalCandidates: number }> {
+    async getAllCandidates(
+        page: number,
+        pageSize: number,
+        querys: string
+    ): Promise<{ candidates: IUser[] | null; totalCandidates: number }> {
         const skip = (page - 1) * pageSize;
 
-        console.log(`Skipping: ${skip}, Limit: ${pageSize}`);
+        const filter: any = { role: 'candidate' };
+        if (querys) {
+            filter.name = { $regex: querys, $options: 'i' };
+        }
 
-        const candidates = await this._userRepository.findAll({ role: 'candidate' }, skip, pageSize);
-        console.log('Retrieved candidates:', candidates);
-
-        const totalCandidates = await this._userRepository.countDocuments({ role: 'candidate' });
-        console.log('Total candidates Count:', totalCandidates);
+        const candidates = await this._userRepository.findAll(filter, skip, pageSize);
+        const totalCandidates = await this._userRepository.countDocuments(filter);
 
         if (candidates) {
             return { candidates, totalCandidates };

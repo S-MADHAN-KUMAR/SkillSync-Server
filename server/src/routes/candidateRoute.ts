@@ -1,24 +1,21 @@
 import { Request, Response, Router } from "express";
 import upload from "../utils/upload";
 import { candidateController } from "../config/dependencyInjector";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-// Update or create candidate profile (PUT for update)
 router.put(
     '/:id/profile',
     upload.fields([
         { name: 'logo', maxCount: 1 },
         { name: 'banner', maxCount: 1 },
         { name: 'resume', maxCount: 1 }
-    ]),
-    candidateController.updateOrCreate.bind(candidateController)
+    ]), authMiddleware(['candidate']), candidateController.updateOrCreate.bind(candidateController)
 );
 
-// Get candidate profile
 router.get(
-    '/get/:id/profile',
-    candidateController.getCandidateProfile.bind(candidateController)
+    '/get/:id/profile', authMiddleware(['candidate']), candidateController.getCandidateProfile.bind(candidateController)
 );
 
 

@@ -141,7 +141,6 @@ export class EmployeeController implements IEmployeeController {
             const expiredBefore = req.query.expiredBefore
                 ? new Date(req.query.expiredBefore as string)
                 : undefined;
-
             const { jobs, totalJobs } = await this._employeeService.getAllJobs(
                 page,
                 pageSize,
@@ -151,7 +150,7 @@ export class EmployeeController implements IEmployeeController {
                 salary,
                 skill,
                 active,
-                expiredBefore
+                expiredBefore,
             );
 
             res.status(StatusCode.OK).json({
@@ -174,7 +173,8 @@ export class EmployeeController implements IEmployeeController {
 
     async getRecentJobs(req: Request, res: Response): Promise<void> {
         try {
-            const response = await this._employeeService.getRecentJobs()
+            const id = req.params.id
+            const response = await this._employeeService.getRecentJobs(id)
             res.status(StatusCode.OK).json({
                 success: true,
                 jobs: response
@@ -207,13 +207,71 @@ export class EmployeeController implements IEmployeeController {
         }
     }
 
+    async getJob(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+
+            const job = await this._employeeService.getJob(id)
+            res.status(StatusCode.OK).json({
+                success: true,
+                job: job,
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
     async getJobs(req: Request, res: Response): Promise<void> {
         try {
             const id = req.params.id
-            const response = await this._employeeService.getJobs(id)
+            const page = parseInt(req.query.page as string) || 1;
+            const pageSize = parseInt(req.query.pageSize as string) || 10;
+            const query = (req.query.querys as string) || "";
+            const location = (req.query.location as string) || "";
+            const jobType = (req.query.jobType as string) || "";
+            const salary = (req.query.salary as string) || "";
+            const { jobs, totalJobs } = await this._employeeService.getJobs(id, page,
+                pageSize,
+                query,
+                location,
+                jobType,
+                salary)
             res.status(StatusCode.OK).json({
                 success: true,
-                jobs: response
+                jobs: jobs,
+                totalJobs,
+                totalPages: Math.ceil(totalJobs / pageSize),
+                currentPage: page,
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+    async getAllEmployees(req: Request, res: Response): Promise<void> {
+        try {
+            const page = parseInt(req.query.page as string) || 1;
+            const pageSize = parseInt(req.query.pageSize as string) || 10;
+            const query = (req.query.querys as string) || "";
+            const location = (req.query.location as string) || "";
+            const { employees, totalEmployees } = await this._employeeService.getAllEmployees(page,
+                pageSize,
+                query,
+                location,)
+            res.status(StatusCode.OK).json({
+                success: true,
+                employees: employees,
+                totalEmployees,
+                totalPages: Math.ceil(totalEmployees / pageSize),
+                currentPage: page,
             });
         } catch (error) {
             const err = error as Error;
@@ -234,6 +292,26 @@ export class EmployeeController implements IEmployeeController {
             res.status(StatusCode.OK).json({
                 success: true,
                 message: status ? JobPost.JOB_REMOVED : JobPost.JOB_RECOVERD
+
+            });
+        } catch (error) {
+            const err = error as Error;
+            res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: err.message,
+            });
+        }
+    }
+
+
+    async getEmployeeDetail(req: Request, res: Response): Promise<void> {
+        try {
+            const id = req.params.id
+
+            const response = await this._employeeService.getEmployeeDetail(id)
+            res.status(StatusCode.OK).json({
+                success: true,
+                employee: response
 
             });
         } catch (error) {

@@ -1,3 +1,4 @@
+import { UpdateQuery } from "mongoose";
 import { IEmployeeProfile } from "../../interfaces/IEmployeeProfile";
 import { IJobPost } from "../../interfaces/IJobPost";
 import { IUser } from "../../interfaces/IUser";
@@ -48,6 +49,13 @@ export class EmployeeService implements IEmployeeService {
         } else {
             response = await this._employeeRepository.update(employeeProfileExist?._id as string, updatedPayload);
             updatedUser = await this._userRepository.update(id, { employeeProfileId: response?._id });
+            await this._jobRepository.updateMany(
+                { employeeId: updatedUser?._id },
+                {
+                    logo: response?.logo,
+                    companyName: response?.companyName,
+                } as UpdateQuery<IJobPost>
+            );
         }
 
         return { response, userData: updatedUser };
@@ -63,10 +71,10 @@ export class EmployeeService implements IEmployeeService {
     }
 
     async createJob(payload: IJobPost): Promise<IJobPost | null> {
-
         if (!payload.employeeId) {
             throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.BAD_REQUEST);
         }
+
         const found = await this._employeeRepository.findOne({ userId: payload.employeeId });
 
         if (!found) {
@@ -82,6 +90,11 @@ export class EmployeeService implements IEmployeeService {
         if (!response) {
             throw new HttpError(JobPostErrorMessages.JOB_FAILD_TO_CREATE, StatusCode.BAD_REQUEST);
         }
+
+        await this._employeeRepository.updateMany(
+            { userId: payload.employeeId },
+            { $push: { jobPosts: response._id } }
+        );
 
         return response;
     }
@@ -104,7 +117,7 @@ export class EmployeeService implements IEmployeeService {
         salary?: string,
         skill?: string,
         active?: boolean,
-        expiredBefore?: Date
+        expiredBefore?: Date,
     ): Promise<{ jobs: IJobPost[] | null; totalJobs: number }> {
 
         const skip = (page - 1) * pageSize;
@@ -157,8 +170,8 @@ export class EmployeeService implements IEmployeeService {
         }
     }
 
-    async getRecentJobs(): Promise<IJobPost[] | null> {
-        const response = await this._jobRepository.findRecentJobs()
+    async getRecentJobs(id: string): Promise<IJobPost[] | null> {
+        const response = await this._jobRepository.findRecentJobs(id)
         if (response) {
             return response
         } else {
@@ -168,15 +181,6 @@ export class EmployeeService implements IEmployeeService {
 
     async editJob(id: string, payload: IJobPost): Promise<IJobPost | null> {
         const response = await this._jobRepository.update(id, payload)
-        if (response) {
-            return response
-        } else {
-            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND)
-        }
-    }
-
-    async getJobs(id: string): Promise<IJobPost | null> {
-        const response = await this._jobRepository.findById(id)
         if (response) {
             return response
         } else {
@@ -194,6 +198,105 @@ export class EmployeeService implements IEmployeeService {
             throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND);
         }
         return true;
+    }
+
+    async getJobs(
+        id: string,
+        page: number,
+        pageSize: number,
+        querys?: string,
+        location?: string,
+        jobType?: string,
+        salary?: string
+    ): Promise<{ jobs: IJobPost[]; totalJobs: number }> {
+
+        const skip = (page - 1) * pageSize;
+
+        const filter: any = {
+            employeeId: id
+        };
+
+        if (querys) {
+            filter.jobTitle = { $regex: querys, $options: 'i' };
+        }
+
+        if (location) {
+            filter.state = { $regex: location, $options: 'i' };
+        }
+
+        if (jobType) {
+            filter.jobType = jobType;
+        }
+
+        if (salary) {
+            const salaryValue = Number(salary);
+            if (!isNaN(salaryValue)) {
+                filter.$or = [
+                    { minSalary: { $lte: salaryValue } },
+                    { maxSalary: { $gte: salaryValue } }
+                ];
+            }
+        }
+
+        const jobs = await this._jobRepository.findAll(filter, skip, pageSize);
+        const totalJobs = await this._jobRepository.countDocuments(filter);
+
+        if (jobs && jobs.length > 0) {
+            return { jobs, totalJobs };
+        } else {
+            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND);
+        }
+    }
+
+    async getAllEmployees(
+        page: number,
+        pageSize: number,
+        querys?: string,
+        location?: string,
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }> {
+
+        const skip = (page - 1) * pageSize;
+
+        const filter: any = {};
+
+        if (querys) {
+            filter.companyName = { $regex: querys, $options: 'i' };
+        }
+
+        if (location) {
+            filter.companyState = { $regex: location, $options: 'i' };
+        }
+
+        const employees = await this._employeeRepository.findAll(filter, skip, pageSize);
+        const totalEmployees = await this._employeeRepository.countDocuments(filter);
+
+        if (employees && employees.length > 0) {
+            return { employees, totalEmployees };
+        } else {
+            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND);
+        }
+    }
+
+    async getJob(id: string): Promise<IJobPost> {
+
+        const job = await this._jobRepository.findById(id);
+
+        if (job) {
+            return job
+        } else {
+            throw new HttpError(JobPostErrorMessages.JOB_NOT_FOUND, StatusCode.NOT_FOUND);
+        }
+    }
+
+    async getEmployeeDetail(id: string): Promise<IEmployeeProfile> {
+
+        const response = await this._employeeRepository.findById(id);
+
+        if (response) {
+            return response
+        } else {
+            throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.NOT_FOUND);
+        }
     }
 
 }

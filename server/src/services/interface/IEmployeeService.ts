@@ -15,11 +15,27 @@ export interface IEmployeeService {
         salary?: string,
         skill?: string,
         active?: boolean,
-        expiredBefore?: Date
+        expiredBefore?: Date,
     ): Promise<{ jobs: IJobPost[] | null; totalJobs: number }>
-    getRecentJobs(): Promise<IJobPost[] | null>;
+    getRecentJobs(id: string): Promise<IJobPost[] | null>
     editJob(id: string, payload: IJobPost): Promise<IJobPost | null>;
-    getJobs(id: string): Promise<IJobPost | null>
+    getJobs(
+        id: string,
+        page: number,
+        pageSize: number,
+        querys?: string,
+        location?: string,
+        jobType?: string,
+        salary?: string
+    ): Promise<{ jobs: IJobPost[]; totalJobs: number }>
     updateJob(payload: IJobPost, id: string): Promise<IJobPost | null>
     toggleStatus(id: string, status: boolean): Promise<Boolean | null>
+    getJob(id: string): Promise<IJobPost>
+    getEmployeeDetail(id: string): Promise<IEmployeeProfile>
+    getAllEmployees(
+        page: number,
+        pageSize: number,
+        querys?: string,
+        location?: string,
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }>
 }

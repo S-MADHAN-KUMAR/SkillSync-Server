@@ -7,6 +7,8 @@ const router = Router();
 router.post('/register', userController.register.bind(userController));
 router.post('/login', userController.login.bind(userController));
 router.post('/google', userController.googleAuth.bind(userController));
+router.post('/logout/:role', userController.logout.bind(userController))
+router.post('/refresh-token', userController.refreshToken.bind(userController));
 
 // OTP & Password Recovery
 router.post('/otp/verify', userController.otpVerify.bind(userController));

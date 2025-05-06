@@ -8,6 +8,9 @@ export interface IEmployeeController {
     getRecentJobs(req: Request, res: Response): Promise<void>
     editJob(req: Request, res: Response): Promise<void>
     getJobs(req: Request, res: Response): Promise<void>
+    getJob(req: Request, res: Response): Promise<void>
     updateJob(req: Request, res: Response): Promise<void>
     toggleStatus(req: Request, res: Response): Promise<void>
+    getAllEmployees(req: Request, res: Response): Promise<void>
+    getEmployeeDetail(req: Request, res: Response): Promise<void>
 }

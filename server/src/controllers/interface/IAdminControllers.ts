@@ -5,4 +5,5 @@ export interface IAdminControllers {
     getCandidates(req: Request, res: Response): Promise<void>
     getEmployees(req: Request, res: Response): Promise<void>
     toggleStatus(req: Request, res: Response): Promise<void>
+    logout(req: Request, res: Response): Promise<void>
 }

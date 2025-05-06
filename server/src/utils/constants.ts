@@ -42,7 +42,9 @@ export const UserSuccessMessages = {
     USER_UPDATED: "User account updated successfully",
     USER_VERIFIED: "User account verified successfully",
     USER_OTP_SENDED: "Forgot OTP sended successfully",
-    USER_PASSWORD_RESETED: "User password reseted successfully."
+    USER_PASSWORD_RESETED: "User password reseted successfully.",
+    USER_BLOCKED: "User account blocked successfully",
+    USER_UNBLOCKED: "User account unblocked successfully",
 }
 export const OTPSuccessMessages = {
     OTP_SENDED: "OTP sended successfully",

@@ -10,12 +10,18 @@ export class JobRepository
         super(jobPostModel);
     }
 
-    async findRecentJobs(): Promise<IJobPost[] | null> {
+    async findRecentJobs(employeeId: string): Promise<IJobPost[]> {
         try {
-            const response = await jobPostModel.find().sort({ postedAt: -1 }).limit(10)
-            return response;
+            const jobs = await jobPostModel
+                .find({ employeeId })
+                .sort({ postedAt: -1 })
+                .limit(10);
+
+            return jobs;
         } catch (error) {
-            throw error;
+            console.error('Error fetching recent jobs:', error);
+            throw new Error('Failed to fetch recent jobs');
         }
     }
+
 }

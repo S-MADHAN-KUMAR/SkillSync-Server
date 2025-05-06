@@ -11,7 +11,7 @@ export interface IUserService {
     resetOtp(email: string): Promise<IUser | null>
     forgotOtpVerify(payload: otp): Promise<IUser | null>
     resetPassword(payload: resetPassword): Promise<IUser | null>
-    getAllEmployees(page: number, pageSize: number): Promise<{ employees: IUser[] | null, totalEmployees: number }>
-    getAllCandidates(page: number, pageSize: number): Promise<{ candidates: IUser[] | null, totalCandidates: number }>
+    getAllEmployees(page: number, pageSize: number, querys: string): Promise<{ employees: IUser[] | null, totalEmployees: number }>
+    getAllCandidates(page: number, pageSize: number, querys: string): Promise<{ candidates: IUser[] | null, totalCandidates: number }>
     toggleStatus(payload: status): Promise<boolean>
 }
