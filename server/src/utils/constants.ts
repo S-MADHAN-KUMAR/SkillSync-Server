@@ -4,6 +4,13 @@ export const MongoDB = {
     DB_ERROR: "Error Saving in DB"
 };
 
+export const MockInterviewSuccessMsg = {
+    CREATED: "Interview successfully created."
+}
+export const MockInterviewErrorMsg = {
+    FAILED_TO_CREATED: "Interview failed to create."
+}
+
 export const GeneralServerErrorMsg = {
     INTERNAL_SERVER_ERROR: "Internal server error!",
     DATABASE_ERROR: "Database operation failed!",

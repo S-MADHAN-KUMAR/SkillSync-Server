@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { IAdminService } from "../../services/interface/IAdminService";
-import { IAdminControllers } from "../interface/IAdminControllers";
+import { IAdminControllers } from "../interface/IAdminController";
 import { StatusCode } from "../../utils/enums";
 import { IUserService } from "../../services/interface/IUserService";
 import { AdminSuccessMessages, UserSuccessMessages } from "../../utils/constants";

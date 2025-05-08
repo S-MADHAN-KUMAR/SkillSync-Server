@@ -9,6 +9,7 @@ import adminRouter from './routes/adminRoute'
 import { StatusCode } from "./utils/enums";
 import { GeneralServerErrorMsg } from "./utils/constants";
 import cookieParser from 'cookie-parser';
+import aiRouter from "./routes/aiRouter";
 dotenv.config()
 
 let app: Application = express();
@@ -28,6 +29,7 @@ app.use('/auth', authRouter)
 app.use('/candidate', candidateRouter)
 app.use('/employee', employeeRouter)
 app.use('/admin', adminRouter)
+app.use('/ai', aiRouter)
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     console.error("Error:", err.message);

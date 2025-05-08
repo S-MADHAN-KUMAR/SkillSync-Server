@@ -4,7 +4,6 @@ import { ICandidateControllers } from "../interface/ICandidateController";
 import { StatusCode } from "../../utils/enums";
 import { UserSuccessMessages } from "../../utils/constants";
 import { uploadFileToCloudinary } from "../../utils/uploadToCloudinary";
-import { log } from "console";
 
 export class CandidateController implements ICandidateControllers {
     private _candidateService: ICandidateService;
