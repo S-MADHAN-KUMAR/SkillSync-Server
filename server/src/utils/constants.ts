@@ -5,10 +5,17 @@ export const MongoDB = {
 };
 
 export const MockInterviewSuccessMsg = {
-    CREATED: "Interview successfully created."
+    CREATED: "Interview successfully created.",
+    ANSWER_SAVED: "Answer saved successfully."
 }
 export const MockInterviewErrorMsg = {
-    FAILED_TO_CREATED: "Interview failed to create."
+    FAILED_TO_CREATED: "Interview failed to create.",
+    QUESTION_NOT_FOUND: "Question not found."
+}
+
+export const GeminiErrorMsg = {
+    FAILED_TO_PARSE: "Failed to parse Gemini response:",
+    FAILED_TO_GENERATE: "Failed to generate Gemini response:"
 }
 
 export const GeneralServerErrorMsg = {

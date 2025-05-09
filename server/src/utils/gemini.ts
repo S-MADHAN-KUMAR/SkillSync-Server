@@ -24,6 +24,7 @@ export async function askGemini(prompt: string): Promise<string | null> {
             contents,
         });
 
+        // Accumulate the response from the stream and return it
         let result = '';
         for await (const chunk of response) {
             if (chunk.text) result += chunk.text;
@@ -32,14 +33,11 @@ export async function askGemini(prompt: string): Promise<string | null> {
         return result.trim();
     } catch (error) {
         console.error('Error in askGemini:', error);
-        return null;
+        return null; // Return null if there's an error
     }
 }
 
-
 export function sanitizeGeminiResponse(response: string): string {
-    return response
-        .replace(/```json/g, '') // remove starting markdown
-        .replace(/```/g, '')     // remove ending markdown
-        .trim();
+    // Simplify and make the regex more precise to clean the response
+    return response.replace(/```json|```/g, '').trim();
 }
