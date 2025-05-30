@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dependencyInjector_1 = require("../config/dependencyInjector");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const enums_1 = require("../utils/enums");
+const router = (0, express_1.Router)();
+router.post('/login', dependencyInjector_1.adminController.adminLogin.bind(dependencyInjector_1.adminController));
+router.post('/logout', dependencyInjector_1.adminController.logout.bind(dependencyInjector_1.adminController));
+router.get('/candidates', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.getCandidates.bind(dependencyInjector_1.adminController));
+router.get('/employees', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.getEmployees.bind(dependencyInjector_1.adminController));
+router.get('/posts', dependencyInjector_1.adminController.getPosts.bind(dependencyInjector_1.adminController));
+router.put('/users/status', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.toggleStatus.bind(dependencyInjector_1.adminController));
+router.put('/posts/status', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.togglePostStatus.bind(dependencyInjector_1.adminController));
+router.put('/ai/access/status', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.toggleAiAccessStatus.bind(dependencyInjector_1.adminController));
+router.get('/get/statistics', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.ADMIN]), dependencyInjector_1.adminController.getStatistics.bind(dependencyInjector_1.adminController));
+const adminRoutes = router;
+exports.default = adminRoutes;

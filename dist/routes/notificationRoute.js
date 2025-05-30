@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dependencyInjector_1 = require("../config/dependencyInjector");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const enums_1 = require("../utils/enums");
+const router = (0, express_1.Router)();
+router.get('/get/:id', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE, enums_1.Roles.EMPLOYEE]), dependencyInjector_1.notificationsController.getUserNotifications.bind(dependencyInjector_1.notificationsController));
+router.get('/update/read/:id', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE, enums_1.Roles.EMPLOYEE]), dependencyInjector_1.notificationsController.updateRead.bind(dependencyInjector_1.notificationsController));
+router.post('/send/interview/notification', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.EMPLOYEE]), dependencyInjector_1.notificationsController.sendInterviewNotification.bind(dependencyInjector_1.notificationsController));
+const notificationRoutes = router;
+exports.default = notificationRoutes;

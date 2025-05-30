@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dependencyInjector_1 = require("../config/dependencyInjector");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const enums_1 = require("../utils/enums");
+const router = (0, express_1.Router)();
+router.post('/request', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.connectionsController.request.bind(dependencyInjector_1.connectionsController));
+router.post('/accept', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.connectionsController.accept.bind(dependencyInjector_1.connectionsController));
+router.post('/cancel', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.connectionsController.cancel.bind(dependencyInjector_1.connectionsController));
+router.post('/disconnect', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.connectionsController.disconnect.bind(dependencyInjector_1.connectionsController));
+router.post('/update/:id', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.connectionsController.update.bind(dependencyInjector_1.connectionsController));
+const connectionRoutes = router;
+exports.default = connectionRoutes;

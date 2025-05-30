@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dependencyInjector_1 = require("../config/dependencyInjector");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const enums_1 = require("../utils/enums");
+const router = (0, express_1.Router)();
+router.post('/apply', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.applicationsController.apply.bind(dependencyInjector_1.applicationsController));
+router.get('/get/all/applications', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.EMPLOYEE]), dependencyInjector_1.applicationsController.getAllApplications.bind(dependencyInjector_1.applicationsController));
+router.get('/get/user/applications', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.CANDIDATE]), dependencyInjector_1.applicationsController.getUserApplications.bind(dependencyInjector_1.applicationsController));
+router.post('/update/status', (0, authMiddleware_1.authMiddleware)([enums_1.Roles.EMPLOYEE]), dependencyInjector_1.applicationsController.updateApplicationStatus.bind(dependencyInjector_1.applicationsController));
+const applicationsRoutes = router;
+exports.default = applicationsRoutes;
