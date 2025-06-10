@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: node-ts-socket-server
+    env: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
