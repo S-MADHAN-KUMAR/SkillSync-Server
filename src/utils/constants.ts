@@ -1,3 +1,5 @@
+import { NOTFOUND } from "dns";
+
 export const MongoDB = {
     SUCCESS: "MongoDB connected",
     ERROR: "MongoDB connection error",
@@ -7,7 +9,8 @@ export const MongoDB = {
 export const PostSuccessMsg = {
     CREATED: "Post successfully created.",
     UPDATED: "Post updated successfully created.",
-    SAVED: "Post saved successfully."
+    SAVED: "Post saved successfully.",
+    NOTFOUND: "Post not found"
 }
 
 export const PostErrorMsg = {

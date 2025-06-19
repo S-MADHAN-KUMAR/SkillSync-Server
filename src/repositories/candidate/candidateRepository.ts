@@ -1,5 +1,5 @@
 
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
 import candidateProfileModel from "../../models/candidateProfileModel";
 import { GenericRepository } from "../genericRepository";
@@ -23,9 +23,10 @@ export class CandidateRepository
         location?: string,
         userId?: string,
         omit?: string
-    ): Promise<{ candidates: any[]; totalCandidates: number }> {
+    ): Promise<{ candidates: ICandidateProfile[]; totalCandidates: number }> {
         const skip = (page - 1) * pageSize;
-        const match: any = {};
+
+        const match: Record<string, unknown> = {};
 
         if (querys) {
             match.name = { $regex: querys, $options: "i" };
@@ -37,7 +38,7 @@ export class CandidateRepository
 
         const omitObjectId = omit ? new mongoose.Types.ObjectId(omit) : null;
 
-        const pipeline: any[] = [
+        const pipeline: PipelineStage[] = [
             // Initial match filter (name, state, etc)
             { $match: match },
 

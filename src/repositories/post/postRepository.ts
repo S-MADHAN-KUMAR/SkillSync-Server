@@ -16,6 +16,7 @@ import { getRepliesPayload } from "../../types/types";
 import { savedJobsModel } from "../../models/saveJobsModel";
 import { SavedPostModel } from "../../models/post/savePost";
 import { IUser } from "../../interfaces/IUser";
+import { IReply } from "../../interfaces/post/IReply";
 
 export class PostRepository
     extends GenericRepository<IPost>
@@ -24,7 +25,7 @@ export class PostRepository
         super(PostModel);
     }
 
-    async findRecentPosts(userId: string): Promise<any[]> {
+    async findRecentPosts(userId: string): Promise<IPost[]> {
         try {
             const posts = await PostModel.aggregate([
                 {
@@ -116,7 +117,7 @@ export class PostRepository
         return PostModel.findByIdAndUpdate(id, incData, { new: true }).exec();
     }
 
-    async findAllPosts(payload: { id: string; role: string }): Promise<any[]> {
+    async findAllPosts(payload: { id: string; role: string }): Promise<IPost[]> {
         try {
             const objectUserId = new Types.ObjectId(payload.id);
             const prioritizedUserIds = new Set<string>();
@@ -241,7 +242,7 @@ export class PostRepository
             );
 
             // ✅ Attach isSaved and savedPostId correctly
-            const postsWithSavedInfo = postsWithLikeInfo.map((post: any) => {
+            const postsWithSavedInfo = postsWithLikeInfo.map((post) => {
                 const postIdStr = post._id.toString();
                 return {
                     ...post,
@@ -276,7 +277,7 @@ export class PostRepository
             const commentCandidateMap = new Map(commentCandidateProfiles.map(p => [p.userId.toString(), p]));
             const commentEmployeeMap = new Map(commentEmployeeProfiles.map(p => [p.userId.toString(), p]));
 
-            const postsWithComments = postsWithSavedInfo.map((post: any) => {
+            const postsWithComments = postsWithSavedInfo.map((post) => {
                 const postIdStr = post._id.toString();
 
                 const postComments = allComments
@@ -333,7 +334,7 @@ export class PostRepository
         }
     }
 
-    async getReplies(payload: getRepliesPayload): Promise<any[]> {
+    async getReplies(payload: getRepliesPayload): Promise<IReply[]> {
         try {
             let replies;
 
@@ -411,7 +412,7 @@ export class PostRepository
         role: string;
         page?: number;
         pageSize?: number;
-    }): Promise<{ totalPosts: number; posts: any[] }> {
+    }): Promise<{ totalPosts: number; posts: IPost[] }> {
         try {
             const profileOwnerId = new Types.ObjectId(payload.id); // Profile being viewed
             const viewerId = new Types.ObjectId(payload.userId);   // Logged-in user
@@ -549,7 +550,7 @@ export class PostRepository
             const commentCandidateMap = new Map(commentCandidateProfiles.map(p => [p.userId.toString(), p]));
             const commentEmployeeMap = new Map(commentEmployeeProfiles.map(p => [p.userId.toString(), p]));
 
-            const postsWithComments = finalPosts.map((post: any) => {
+            const postsWithComments = finalPosts.map((post) => {
                 const postIdStr = post._id.toString();
 
                 const postComments = allComments
@@ -607,190 +608,6 @@ export class PostRepository
         }
     }
 
-    // async findAllSavedPosts(payload: {
-    //     id: string;
-    //     role: string;
-    //     querys: string;
-    //     page: number;
-    //     pageSize: number;
-    // }): Promise<{ posts: any[]; totalPosts: number }> {
-    //     try {
-
-    //         console.log(payload?.querys);
-
-    //         const objectUserId = new Types.ObjectId(payload.id);
-
-    //         // Step 1: Get saved posts by the user
-    //         const savedPostsInitial = await SavedPostModel.find({
-    //             userId: objectUserId,
-    //             userRole: payload?.role,
-    //             isDeleted: false
-    //         }).lean();
-
-    //         const savedPostIds = savedPostsInitial.map(sp => sp.postId);
-
-    //         // Step 2: Count only saved posts
-    //         const totalPosts = await PostModel.countDocuments({
-    //             _id: { $in: savedPostIds },
-    //             isDeleted: false,
-    //             status: true,
-    //             ...(payload.querys?.trim()
-    //                 ?
-    //                 { posterName: { $regex: payload.querys, $options: 'i' } }
-    //                 : {})
-    //         });
-
-    //         // Step 3: Fetch saved posts with pagination
-    //         const allPosts = await PostModel.aggregate([
-    //             {
-    //                 $match: {
-    //                     _id: { $in: savedPostIds },
-    //                     isDeleted: false,
-    //                     status: true
-    //                 }
-    //             },
-    //             { $sort: { createdAt: -1 } },
-    //             { $skip: (payload.page - 1) * payload.pageSize },
-    //             { $limit: payload.pageSize }
-    //         ]);
-
-    //         const uniqueUserIds = [
-    //             ...new Set(allPosts.map(post => post.userId.toString()))
-    //         ].map(id => new Types.ObjectId(id));
-
-    //         const [users, candidateProfiles, employeeProfiles] = await Promise.all([
-    //             userModel.find({ _id: { $in: uniqueUserIds } }).lean(),
-    //             candidateProfileModel.find({ userId: { $in: uniqueUserIds } }).lean(),
-    //             employeeProfileModel.find({ userId: { $in: uniqueUserIds } }).lean()
-    //         ]);
-
-    //         const userMap = new Map(users.map(user => [user._id.toString(), user]));
-    //         const candidateMap = new Map(candidateProfiles.map(p => [p.userId.toString(), p]));
-    //         const employeeMap = new Map(employeeProfiles.map(p => [p.userId.toString(), p]));
-
-    //         const finalPosts = allPosts.map(post => {
-    //             const userIdStr = post.userId.toString();
-    //             const user = userMap.get(userIdStr);
-    //             const profile =
-    //                 user?.role === Roles.CANDIDATE
-    //                     ? candidateMap.get(userIdStr)
-    //                     : employeeMap.get(userIdStr);
-
-    //             return {
-    //                 ...post,
-    //                 userInfo: user || null,
-    //                 userProfile: profile || null
-    //             };
-    //         });
-
-    //         const postIds = finalPosts.map(post => post._id);
-
-    //         const likedPosts = await LikeModel.find({
-    //             userId: objectUserId,
-    //             postId: { $in: postIds }
-    //         }).lean();
-
-    //         const likedPostIds = new Set(likedPosts.map(lp => lp.postId.toString()));
-
-    //         const postsWithLikeInfo = finalPosts.map(post => ({
-    //             ...post,
-    //             isLiked: likedPostIds.has(post._id.toString())
-    //         }));
-
-    //         const savedPostMap = new Map(
-    //             savedPostsInitial.map(saved => [saved.postId.toString(), saved._id.toString()])
-    //         );
-
-    //         const postsWithSavedInfo = postsWithLikeInfo.map((post: any) => {
-    //             const postIdStr = post._id.toString();
-    //             return {
-    //                 ...post,
-    //                 isSaved: savedPostMap.has(postIdStr),
-    //                 savedPostId: savedPostMap.get(postIdStr) || null
-    //             };
-    //         });
-
-    //         const allComments = await CommentModel.find({
-    //             postId: { $in: postIds }
-    //         }).lean();
-
-    //         const commentIds = allComments.map(c => c._id);
-    //         const replies = await ReplyModel.aggregate([
-    //             { $match: { commentId: { $in: commentIds } } },
-    //             { $group: { _id: "$commentId", count: { $sum: 1 } } }
-    //         ]);
-    //         const repliesCountMap = new Map(replies.map(r => [r._id.toString(), r.count]));
-
-    //         const commenterUserIds = [
-    //             ...new Set(allComments.map(c => c.userId.toString()))
-    //         ].map(id => new Types.ObjectId(id));
-
-    //         const [commentUsers, commentCandidateProfiles, commentEmployeeProfiles] = await Promise.all([
-    //             userModel.find({ _id: { $in: commenterUserIds } }).lean(),
-    //             candidateProfileModel.find({ userId: { $in: commenterUserIds } }).lean(),
-    //             employeeProfileModel.find({ userId: { $in: commenterUserIds } }).lean()
-    //         ]);
-
-    //         const commentUserMap = new Map(commentUsers.map(u => [u._id.toString(), u]));
-    //         const commentCandidateMap = new Map(commentCandidateProfiles.map(p => [p.userId.toString(), p]));
-    //         const commentEmployeeMap = new Map(commentEmployeeProfiles.map(p => [p.userId.toString(), p]));
-
-    //         const postsWithComments = postsWithSavedInfo.map((post: any) => {
-    //             const postIdStr = post._id.toString();
-
-    //             const postComments = allComments
-    //                 .filter(comment =>
-    //                     comment.postId.toString() === postIdStr &&
-    //                     comment.userId.toString() !== payload.id
-    //                 )
-    //                 .map(comment => {
-    //                     const commenterId = comment.userId.toString();
-    //                     const user = commentUserMap.get(commenterId);
-    //                     const profile = user?.role === Roles.CANDIDATE
-    //                         ? commentCandidateMap.get(commenterId)
-    //                         : commentEmployeeMap.get(commenterId);
-
-    //                     return {
-    //                         ...comment,
-    //                         userInfo: user || null,
-    //                         userProfile: profile || null,
-    //                         totalReplies: repliesCountMap.get(comment._id.toString()) || 0
-    //                     };
-    //                 });
-
-    //             const userSpecificComment = allComments
-    //                 .filter(comment =>
-    //                     comment.postId.toString() === postIdStr &&
-    //                     comment.userId.toString() === payload.id
-    //                 )
-    //                 .map(comment => {
-    //                     const commenterId = comment.userId.toString();
-    //                     const user = commentUserMap.get(commenterId);
-    //                     const profile = user?.role === Roles.CANDIDATE
-    //                         ? commentCandidateMap.get(commenterId)
-    //                         : commentEmployeeMap.get(commenterId);
-
-    //                     return {
-    //                         ...comment,
-    //                         userInfo: user || null,
-    //                         userProfile: profile || null,
-    //                         totalReplies: repliesCountMap.get(comment._id.toString()) || 0
-    //                     };
-    //                 });
-
-    //             return {
-    //                 ...post,
-    //                 comments: postComments,
-    //                 userSpecificComment
-    //             };
-    //         });
-
-    //         return { posts: postsWithComments, totalPosts };
-    //     } catch (error) {
-    //         console.error("Error in findAllSavedPosts:", error);
-    //         return { posts: [], totalPosts: 0 };
-    //     }
-    // }
 
     async findAllSavedPosts(payload: {
         id: string;
@@ -798,7 +615,7 @@ export class PostRepository
         querys: string;
         page: number;
         pageSize: number;
-    }): Promise<{ posts: any[]; totalPosts: number }> {
+    }): Promise<{ posts: IPost[]; totalPosts: number }> {
         try {
             console.log("Search query:", payload?.querys);
 
@@ -891,7 +708,7 @@ export class PostRepository
                 savedPostsInitial.map(saved => [saved.postId.toString(), saved._id.toString()])
             );
 
-            const postsWithSavedInfo = postsWithLikeInfo.map((post: any) => {
+            const postsWithSavedInfo = postsWithLikeInfo.map((post) => {
                 const postIdStr = post._id.toString();
                 return {
                     ...post,
@@ -925,7 +742,7 @@ export class PostRepository
             const commentCandidateMap = new Map(commentCandidateProfiles.map(p => [p.userId.toString(), p]));
             const commentEmployeeMap = new Map(commentEmployeeProfiles.map(p => [p.userId.toString(), p]));
 
-            const postsWithComments = postsWithSavedInfo.map((post: any) => {
+            const postsWithComments = postsWithSavedInfo.map((post) => {
                 const postIdStr = post._id.toString();
 
                 const postComments = allComments
@@ -981,5 +798,5 @@ export class PostRepository
             return { posts: [], totalPosts: 0 };
         }
     }
-    
+
 }

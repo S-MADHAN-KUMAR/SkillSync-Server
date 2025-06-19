@@ -8,6 +8,10 @@ import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { StatusCode } from "../../utils/enums";
 import { HttpError } from "../../utils/httpError";
 import { IApplicationsService } from "../interface/IApplicationsService";
+import mongoose, { FilterQuery, ObjectId } from "mongoose";
+import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
+import { status } from "../../types/types";
+
 
 export class ApplicationsService implements IApplicationsService {
     private _candidateRepository: ICandidateRepository;
@@ -22,7 +26,13 @@ export class ApplicationsService implements IApplicationsService {
         this._jobPostRepository = _jobPostRepository;
     }
 
-    async apply(payload: any): Promise<boolean | null> {
+
+
+
+    async apply(payload: {
+        jobId: string,
+        candidateId: string
+    }): Promise<{ status: 'applied' | 'reviewed' | 'interview' | 'hired' | 'rejected' | null }> {
         const exist = await this._applicationRepository.findOne({
             jobId: payload?.jobId,
             candidateId: payload?.candidateId,
@@ -34,8 +44,8 @@ export class ApplicationsService implements IApplicationsService {
         }
 
         const res = await this._applicationRepository.create({
-            jobId: payload?.jobId,
-            candidateId: payload?.candidateId,
+            jobId: new mongoose.Types.ObjectId(payload?.jobId.toString()),
+            candidateId: new mongoose.Types.ObjectId(payload?.candidateId.toString()),
             status: "applied",
             appliedAt: new Date(),
             isDeleted: false
@@ -45,13 +55,13 @@ export class ApplicationsService implements IApplicationsService {
             // Increment application count in JobPost
             await this._jobPostRepository.incrementField(res.jobId.toString(), "applications", 1);
 
-            return true;
+            return { status: "applied" };
         } else {
-            return false;
+            return { status: null };
         }
     }
 
-    async updateApplicationStatus(payload: any): Promise<boolean | null> {
+    async updateApplicationStatus(payload: { id: string, status: "applied" | "reviewed" | "interview" | "hired" | "rejected" }): Promise<boolean | null> {
         const updated = await this._applicationRepository.update(payload?.id, { status: payload?.status })
         if (updated) {
             return true
@@ -66,7 +76,7 @@ export class ApplicationsService implements IApplicationsService {
         query: string;
         jobId: string;
     }): Promise<{
-        applications: (IApplicationModel & { candidateProfile: any })[];
+        applications: (IApplicationModel & { candidateProfile: ICandidateProfile })[];
         totalPages: number;
     } | null> {
         const { page, pageSize, query, jobId } = payload;
@@ -76,7 +86,7 @@ export class ApplicationsService implements IApplicationsService {
 
         const skip = (page - 1) * pageSize;
 
-        const filter: any = { jobId };
+        const filter: FilterQuery<ICandidateProfile | IApplicationModel> = { jobId };
 
         // Get all matching candidateIds if a query is provided
         let matchedCandidateIds: string[] = [];
@@ -133,7 +143,7 @@ export class ApplicationsService implements IApplicationsService {
         query: string;
         userId: string;
     }): Promise<{
-        applications: any[];
+        applications: IApplicationModel[];
         totalPages: number;
     } | null> {
         const { page, pageSize, query, userId } = payload;

@@ -1,4 +1,4 @@
-import { Model, Document, FilterQuery, UpdateQuery } from "mongoose";
+import { Model, Document, FilterQuery, UpdateQuery, PipelineStage } from "mongoose";
 
 export interface IGenericRepository<T extends Document> {
     create(payload: Partial<T>): Promise<T>;
@@ -18,6 +18,10 @@ export interface IGenericRepository<T extends Document> {
         filter: FilterQuery<T>,
     ): Promise<boolean>
     deleteMany(filter: FilterQuery<T>): Promise<boolean>;
+
+
+
+
     aggregate(pipeline: any[]): Promise<any[]>
     incrementField(id: string, field: keyof T, amount?: number): Promise<T | null>;
     decrementField(id: string, field: keyof T, amount?: number): Promise<T | null>;
@@ -55,21 +59,38 @@ export class GenericRepository<T extends Document>
         return await this.model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
     }
 
+    // async update(id: string, data: Partial<T>): Promise<T | null> {
+    //     const filteredData = Object.fromEntries(
+    //         Object.entries(data).filter(([_, value]) => value != null && value !== '')
+    //     );
+
+    //     if (Object.keys(filteredData).length === 0) {
+    //         return null;
+    //     }
+
+    //     return await this.model.findByIdAndUpdate(
+    //         id,
+    //         { $set: filteredData } as any,
+    //         { new: true, upsert: false }
+    //     );
+    // }
+
     async update(id: string, data: Partial<T>): Promise<T | null> {
-        const filteredData = Object.fromEntries(
+        const filteredData: Partial<T> = Object.fromEntries(
             Object.entries(data).filter(([_, value]) => value != null && value !== '')
-        );
+        ) as Partial<T>;
 
         if (Object.keys(filteredData).length === 0) {
             return null;
         }
 
-        return await this.model.findByIdAndUpdate(
+        return this.model.findByIdAndUpdate(
             id,
-            { $set: filteredData } as any,
+            { $set: filteredData },
             { new: true, upsert: false }
-        );
+        ).exec();
     }
+
 
     async countDocuments(filter: object = {}): Promise<number> {
         return await this.model.countDocuments(filter);

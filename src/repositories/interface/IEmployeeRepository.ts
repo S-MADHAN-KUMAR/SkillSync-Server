@@ -9,5 +9,5 @@ export interface IEmployeeRepository extends IGenericRepository<IEmployeeProfile
         querys?: string,
         location?: string,
         omit?: string
-    ): Promise<{ employees: any[]; totalEmployees: number }>
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }>
 }

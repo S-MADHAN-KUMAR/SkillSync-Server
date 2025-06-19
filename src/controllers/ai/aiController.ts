@@ -247,7 +247,7 @@ export class AiController implements IAIController {
         try {
             const payload = req.body
 
-            const response = await this._aiService.inteviewConversation(payload)
+            const response = await this._aiService.interviewConversation(payload)
 
             if (response) {
                 res.status(StatusCode.OK).json({

@@ -4,6 +4,9 @@ import { Document } from "mongoose";
 export interface IUser extends Document {
     name: string,
     email: string,
+    companyName?: string,
+    logo?: string,
+    banner?: string,
     role: string,
     gender: string,
     mobile?: number | null,

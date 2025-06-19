@@ -4,7 +4,7 @@ import { OTPErrorMessages, OTPSuccessMessages, UserSuccessMessages } from "../..
 import { Roles, StatusCode } from "../../utils/enums";
 import { IUserController } from "../interface/IUserController";
 import { generateTokens } from "../../utils/generateTokens";
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 export class UserController implements IUserController {
     private _userService: IUserService;
@@ -87,7 +87,7 @@ export class UserController implements IUserController {
                     response,
                 });
             } else {
-                res.status(StatusCode.BAD_REQUEST).json({
+                res.status(StatusCode.OK).json({
                     success: false
                 });
             }
@@ -233,11 +233,16 @@ export class UserController implements IUserController {
         try {
             const payload = req.body
             const response = await this._userService.resetPassword(payload)
+            const tokens = generateTokens({
+                id: response?._id as string,
+                role: response?.role as Roles.EMPLOYEE | Roles.CANDIDATE | Roles.ADMIN,
+            });
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
                     message: UserSuccessMessages.USER_PASSWORD_RESETED,
                     user: response,
+                    token: tokens.accessToken
                 });
             } else {
                 res.status(StatusCode.BAD_REQUEST).json({
@@ -315,12 +320,13 @@ export class UserController implements IUserController {
         }
     }
 
-    async refreshToken(req: Request, res: Response): Promise<void | any> {
+    async refreshToken(req: Request, res: Response): Promise<void> {
         const token = req.cookies.refreshToken;
-        if (!token) return res.sendStatus(StatusCode.UNAUTHORIZED);
+        if (!token) res.sendStatus(StatusCode.UNAUTHORIZED);
 
         try {
-            const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as any;
+
+            const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as JwtPayload;
 
             const tokens = generateTokens({
                 id: payload.id,
@@ -339,7 +345,7 @@ export class UserController implements IUserController {
             res.clearCookie("CandidateToken");
             res.clearCookie("EmployeeToken");
             res.clearCookie("AdminToken");
-            return res.sendStatus(StatusCode.FORBIDDEN);
+            res.sendStatus(StatusCode.FORBIDDEN);
         }
     }
 

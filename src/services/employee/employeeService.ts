@@ -1,4 +1,4 @@
-import { Types, UpdateQuery } from "mongoose";
+import { FilterQuery, Types, UpdateQuery } from "mongoose";
 import { IEmployeeProfile } from "../../interfaces/IEmployeeProfile";
 import { IJobPost } from "../../interfaces/IJobPost";
 import { IUser } from "../../interfaces/IUser";
@@ -13,6 +13,7 @@ import { IApplicationsRepository } from "../../repositories/interface/IApplicati
 import { ISaveJobsRepository } from "../../repositories/interface/ISaveJobsRepository";
 import { ISaveCandidateRepository } from "../../repositories/interface/ISaveCandidateRepository";
 import { IPostRepository } from "../../repositories/interface/IPostRepository";
+import { ISavedJobs } from "../../interfaces/IISavedJobs";
 
 export class EmployeeService implements IEmployeeService {
     private _employeeRepository: IEmployeeRepository;
@@ -136,7 +137,7 @@ export class EmployeeService implements IEmployeeService {
     ): Promise<{ jobs: (IJobPost & { isSavedJob: boolean; savedJobId?: string })[] | null; totalJobs: number }> {
 
         const skip = (page - 1) * pageSize;
-        const filter: any = {};
+        const filter: FilterQuery<IJobPost> = {};
 
         if (querys) {
             filter.jobTitle = { $regex: querys, $options: 'i' };
@@ -187,12 +188,12 @@ export class EmployeeService implements IEmployeeService {
             });
 
             const savedJobMap = new Map<string, { _id: string }>();
-            savedJobs.forEach((saved: any) => {
+            savedJobs.forEach((saved: ISavedJobs) => {
                 savedJobMap.set(saved.jobId.toString(), { _id: saved?._id.toString() });
             });
 
             // Attach isSavedJob & savedJobId to each job
-            const enrichedJobs = jobs.map((job: any) => {
+            const enrichedJobs = jobs.map((job: IJobPost) => {
                 const jobId = job?._id.toString();
                 const savedEntry = savedJobMap.get(jobId);
 
@@ -260,7 +261,7 @@ export class EmployeeService implements IEmployeeService {
 
         const skip = (page - 1) * pageSize;
 
-        const filter: any = {
+        const filter: FilterQuery<IJobPost> = {
             employeeId: id
         };
 
@@ -297,7 +298,7 @@ export class EmployeeService implements IEmployeeService {
     }
 
 
-    async getJob(payload: { id: string, userId: string }): Promise<any> {
+    async getJob(payload: { id: string, userId: string }): Promise<IJobPost[] | IJobPost> {
         try {
             const id = payload?.id
             const userId = payload?.userId
@@ -341,7 +342,7 @@ export class EmployeeService implements IEmployeeService {
         querys?: string,
         location?: string,
         omit?: string
-    ): Promise<{ employees: any[]; totalEmployees: number }> {
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }> {
 
         const { employees, totalEmployees } = await this._employeeRepository.findAllEmployees(page,
             pageSize,
@@ -353,7 +354,11 @@ export class EmployeeService implements IEmployeeService {
 
     }
 
-    async getStatistics(id: string): Promise<any | null> {
+    async getStatistics(id: string): Promise<{
+        totalJobs: number,
+        savedPosts: number,
+        savedCandidates: number
+    } | null> {
         const totalJobs = await this._jobRepository.countDocuments({ employeeId: id })
         const savedPosts = await this._postRepository.countDocuments({ userId: id, isDeleted: false })
         const savedCandidates = await this._savedCandidatesRepository.countDocuments({

@@ -12,39 +12,105 @@ export class PostController implements IPostController {
         this._postService = _postService;
     }
 
+    // async createPost(req: Request, res: Response): Promise<void> {
+    //     try {
+    //         const payload = req.body;
+    //         const id = req.params.id;
+    //         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    //         let imageUrls: string[] = [];
+
+    //         if (files && files.images) {
+    //             for (const file of files.images) {
+    //                 if (file.mimetype.startsWith('image/')) {
+    //                     const url = await uploadFileToCloudinary(file.buffer, 'image', 'post_images');
+    //                     imageUrls.push(url);
+    //                 } else {
+    //                     throw new Error('Only image files are allowed in images field.');
+    //                 }
+    //             }
+    //         }
+
+    //         // Fallback if frontend also sends image URLs in body
+    //         if (payload.imageUrls) {
+    //             const parsed = typeof payload.imageUrls === 'string' ? JSON.parse(payload.imageUrls) : payload.imageUrls;
+    //             imageUrls = [...imageUrls, ...parsed];
+    //         }
+
+    //         payload.imageUrls = imageUrls;
+
+    //         const response = await this._postService.createPost(payload, id);
+    //         res.status(StatusCode.OK).json({
+    //             success: true,
+    //             message: PostSuccessMsg.CREATED,
+    //             post: response,
+    //         });
+    //     } catch (error) {
+    //         const err = error as Error;
+    //         res.status(StatusCode.BAD_REQUEST).json({
+    //             success: false,
+    //             message: err.message,
+    //         });
+    //     }
+    // }
+
     async createPost(req: Request, res: Response): Promise<void> {
         try {
-            const payload = req.body;
-            const id = req.params.id;
-            const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+            const { body, files, params } = req;
+            const postId = params.id;
 
             let imageUrls: string[] = [];
 
-            if (files && files.images) {
-                for (const file of files.images) {
-                    if (file.mimetype.startsWith('image/')) {
-                        const url = await uploadFileToCloudinary(file.buffer, 'image', 'post_images');
-                        imageUrls.push(url);
-                    } else {
+            // Type assertion for files when using upload.fields([{ name: 'images', maxCount: 5 }])
+            const uploadedFiles = files as { [fieldname: string]: Express.Multer.File[] };
+            const imageFiles = uploadedFiles?.images;
+
+            if (imageFiles?.length) {
+                const uploadPromises = imageFiles.map(file => {
+                    if (!file.mimetype.startsWith('image/')) {
                         throw new Error('Only image files are allowed in images field.');
                     }
+                    return uploadFileToCloudinary(file.buffer, 'image', 'post_images');
+                });
+
+                const uploadedImageUrls = await Promise.all(uploadPromises);
+                imageUrls.push(...uploadedImageUrls);
+            }
+
+            // Accept image URLs also from frontend as a fallback (already uploaded links)
+            if (body.imageUrls) {
+                const parsedUrls = typeof body.imageUrls === 'string'
+                    ? JSON.parse(body.imageUrls)
+                    : body.imageUrls;
+
+                if (Array.isArray(parsedUrls)) {
+                    imageUrls.push(...parsedUrls);
+                } else {
+                    throw new Error('Invalid imageUrls format. Expected an array.');
                 }
             }
 
-            // Fallback if frontend also sends image URLs in body
-            if (payload.imageUrls) {
-                const parsed = typeof payload.imageUrls === 'string' ? JSON.parse(payload.imageUrls) : payload.imageUrls;
-                imageUrls = [...imageUrls, ...parsed];
+            const postPayload = {
+                ...body,
+                imageUrls,
+            };
+
+            const createdPost = await this._postService.createPost(postPayload, postId);
+
+            if (createdPost) {
+                res.status(StatusCode.OK).json({
+                    success: true,
+                    message: PostSuccessMsg.CREATED,
+                    post: createdPost,
+                });
             }
 
-            payload.imageUrls = imageUrls;
-
-            const response = await this._postService.createPost(payload, id);
             res.status(StatusCode.OK).json({
                 success: true,
-                message: PostSuccessMsg.CREATED,
-                post: response,
+                message: PostSuccessMsg.NOTFOUND,
+                post: [],
             });
+
         } catch (error) {
             const err = error as Error;
             res.status(StatusCode.BAD_REQUEST).json({
@@ -109,7 +175,7 @@ export class PostController implements IPostController {
             });
         } catch (error) {
             const err = error as Error;
-            res.status(StatusCode.BAD_REQUEST).json({
+            res.status(StatusCode.OK).json({
                 success: false,
                 message: err.message,
             });

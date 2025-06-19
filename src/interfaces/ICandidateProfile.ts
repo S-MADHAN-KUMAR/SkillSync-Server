@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 export interface ICandidateProfile extends Document {
     userId: Types.ObjectId | string;
     logo: string;
+    _id: string;
     banner: string;
     name: string;
     about: string;

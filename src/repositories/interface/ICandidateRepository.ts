@@ -10,5 +10,5 @@ export interface ICandidateRepository extends IGenericRepository<ICandidateProfi
         location?: string,
         userId?: string,
         omit?: string
-    ): Promise<{ candidates: any[]; totalCandidates: number }>
+    ): Promise<{ candidates: ICandidateProfile[]; totalCandidates: number }>
 }

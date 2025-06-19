@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { IUser } from "../../interfaces/IUser";
 import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { login, otp, resetPassword, status } from "../../types/types";
@@ -135,8 +135,11 @@ export class UserService implements IUserService {
     async otpVerify(payload: { id: string; otp: string }): Promise<IUser | null> {
         const { id, otp } = payload;
 
+        console.log(payload);
+
+
         if (!id || !otp) {
-            throw new HttpError('Id and OTP are required', StatusCode.BAD_REQUEST);
+            throw new HttpError('Something went wrong please register again!', StatusCode.BAD_REQUEST);
         }
 
         const existing = await this._userRepository.findById(id);
@@ -265,7 +268,8 @@ export class UserService implements IUserService {
 
         await this._userRepository.updateNull(id, {
             forgotOtp: null,
-            forgotOtpExpiry: null
+            forgotOtpExpiry: null,
+            isVerified: false
         });
 
         return await this._userRepository.findById(id);
@@ -275,7 +279,8 @@ export class UserService implements IUserService {
         const response = await this._userRepository.findById(payload?.id)
         if (response) {
             const hashedPassword = await hashPassword(payload.password);
-            const updated = await this._userRepository.update(payload?.id, { password: hashedPassword })
+            const updated = await this._userRepository.update(payload?.id, { password: hashedPassword, isVerified: true }
+            )
             return updated
         } else {
             return null
@@ -289,7 +294,7 @@ export class UserService implements IUserService {
     ): Promise<{ employees: IUser[] | null; totalEmployees: number }> {
         const skip = (page - 1) * pageSize;
 
-        const filter: any = { role: Roles.EMPLOYEE };
+        const filter: FilterQuery<IUser> = { role: Roles.EMPLOYEE };
         if (querys) {
             filter.name = { $regex: querys, $options: 'i' };
         }
@@ -312,7 +317,7 @@ export class UserService implements IUserService {
     ): Promise<{ candidates: IUser[] | null; totalCandidates: number }> {
         const skip = (page - 1) * pageSize;
 
-        const filter: any = { role: Roles.CANDIDATE };
+        const filter: FilterQuery<IUser> = { role: Roles.CANDIDATE };
         if (querys) {
             filter.name = { $regex: querys, $options: 'i' };
         }
@@ -332,13 +337,13 @@ export class UserService implements IUserService {
             throw new HttpError(UserErrorMessages.INVALID_PAYLOAD, StatusCode.BAD_REQUEST);
         }
 
-        let response: any = null;
-
-        if (payload.role === Roles.CANDIDATE) {
-            response = await this._userRepository.update(payload.id, { status: payload.status });
-        } else if (payload.role === Roles.EMPLOYEE) {
-            response = await this._userRepository.update(payload.id, { status: payload.status });
+        if (payload.role !== Roles.CANDIDATE && payload.role !== Roles.EMPLOYEE) {
+            throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.BAD_REQUEST);
         }
+
+        const response = await this._userRepository.update(payload.id, {
+            status: payload.status,
+        });
 
         if (response) {
             return true;
@@ -352,11 +357,9 @@ export class UserService implements IUserService {
             throw new HttpError(UserErrorMessages.INVALID_PAYLOAD, StatusCode.BAD_REQUEST);
         }
 
-        let response: any = null;
-
-
-        response = await this._userRepository.update(payload.id, { hasAiAccess: payload.status });
-
+        const response = await this._userRepository.update(payload.id, {
+            hasAiAccess: payload.status,
+        });
 
         if (response) {
             return true;
@@ -364,6 +367,7 @@ export class UserService implements IUserService {
             throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.NOT_FOUND);
         }
     }
+
 
     async saveCandidate(payload: {
         userId: string;
@@ -381,7 +385,7 @@ export class UserService implements IUserService {
 
         if (existing) {
             if (existing.isDeleted) {
-                await this._savedCandidatesRepository.update(existing._id as string, { isDeleted: false });
+                await this._savedCandidatesRepository.update(existing._id.toString(), { isDeleted: false });
                 return true;
             }
             // Already exists and not deleted, don't create duplicate
@@ -419,7 +423,7 @@ export class UserService implements IUserService {
     }): Promise<{ candidates: (ICandidateProfile & { savedCandidateId: string })[]; totalCandidates: number | null }> {
         const skip = (payload.page - 1) * payload.pageSize;
 
-        const filter: any = {
+        const filter: FilterQuery<IUser> = {
             userId: new Types.ObjectId(payload.id),
             userRole: payload.role,
             isDeleted: false,
@@ -437,18 +441,18 @@ export class UserService implements IUserService {
 
         if (payload.querys) {
             const queryRegex = new RegExp(payload.querys, 'i');
-            candidateProfiles = candidateProfiles.filter((candidate: any) =>
+            candidateProfiles = candidateProfiles.filter((candidate: ICandidateProfile) =>
                 queryRegex.test(candidate.name)
             );
         }
 
         // Create a map for fast lookup
         const savedCandidateMap = new Map(
-            savedCandidates.map((saved: any) => [saved.candidateId.toString(), saved._id.toString()])
+            savedCandidates.map((saved: ISavedCandidate) => [saved.candidateId.toString(), saved._id.toString()])
         );
 
         // Attach savedCandidateId to each candidate
-        const candidatesWithSavedId = candidateProfiles.map((candidate: any) => ({
+        const candidatesWithSavedId = candidateProfiles.map((candidate: ICandidateProfile) => ({
             ...candidate.toObject?.() ?? candidate,
             savedCandidateId: savedCandidateMap.get(candidate._id.toString()) || '',
         }));

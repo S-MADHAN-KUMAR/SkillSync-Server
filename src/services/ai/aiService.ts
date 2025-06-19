@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { IAiMockInterview, IMockANS } from "../../interfaces/IAiMockInterviewModel";
 import { IAiVoiceInterviewModel } from "../../interfaces/IAiVoiceInterviewModel";
 import { IUser } from "../../interfaces/IUser";
@@ -16,6 +16,13 @@ import { IVoiceInterviewFeedbackRepository } from "../../repositories/interface/
 import { IvoiceInterviewFeedback } from "../../interfaces/IvoiceInterviewFeedback";
 import { ICandidateRepository } from "../../repositories/interface/ICandidateRepository";
 import { IEmployeeRepository } from "../../repositories/interface/IEmployeeRepository";
+import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
+import { IEmployeeProfile } from "../../interfaces/IEmployeeProfile";
+
+export type VoiceInterviewWithUserInfo = ReturnType<IAiVoiceInterviewModel['toObject']> & {
+    userInfo: IUser | null;
+};
+
 
 export class AiService implements IAIService {
     private _aiRepository: IAIRepository
@@ -60,7 +67,7 @@ export class AiService implements IAIService {
     ): Promise<{ interviews: IAiMockInterview[] | null; totalInterviews: number }> {
 
         const skip = (page - 1) * pageSize;
-        const filter: any = { isDeleted: false };
+        const filter: FilterQuery<IAiMockInterview> = { isDeleted: false };
 
         if (id) {
             filter.candidateId = id;
@@ -179,8 +186,8 @@ export class AiService implements IAIService {
                         userAnswer: payload.userAnswer,
                     };
                 });
-            } catch (err: any) {
-                throw new Error(`Failed to parse Gemini response: ${err.message}`);
+            } catch (err) {
+                throw new Error(`Failed to parse Gemini response: ${err}`);
             }
 
             const existingAnswers = aiData.jsonMockAnswer || [];
@@ -277,10 +284,13 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
         pageSize: number,
         querys?: string,
         id?: string,
-    ): Promise<{ interviews: any[] | null; totalInterviews: number }> {
+    ): Promise<{
+        interviews: any[];
+        totalInterviews: number;
+    }> {
 
         const skip = (page - 1) * pageSize;
-        const filter: any = { isDeleted: false, expiredDate: { $gt: new Date() } };
+        const filter: FilterQuery<IAiVoiceInterviewModel> = { isDeleted: false, expiredDate: { $gt: new Date() } };
 
         if (id) {
             filter.employeeId = id;
@@ -326,7 +336,7 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
 
     async getInterview(
         id: string
-    ): Promise<{ interview: IAiVoiceInterviewModel; userInfo: IUser; userProfile: any | null } | null> {
+    ): Promise<{ interview: IAiVoiceInterviewModel; userInfo: IUser; userProfile: ICandidateProfile | IEmployeeProfile | null } | null> {
         try {
             const interview = await this._voiceInterviewRepository.findOne({ _id: id, isDeleted: false });
             if (!interview) return null;
@@ -338,7 +348,7 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
 
             if (!userInfo) return null;
 
-            let userProfile: any | null = null;
+            let userProfile: ICandidateProfile | IEmployeeProfile | null = null;
 
             if (userInfo.role === Roles.CANDIDATE && userInfo.candidateProfileId) {
                 userProfile = await this._candidateProfileRepository.findById(userInfo.candidateProfileId as string);
@@ -353,7 +363,7 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
         }
     }
 
-    async checkInterviewAccess(payload: { id: string, userId: string }): Promise<any | null> {
+    async checkInterviewAccess(payload: { id: string, userId: string }): Promise<{ interview: IAiVoiceInterviewModel, userInfo: IUser | null } | null> {
         try {
             const interview = await this._voiceInterviewRepository.findOne({ _id: payload?.id, interviewFor: payload?.userId });
             if (!interview) return null;
@@ -366,58 +376,63 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
         }
     }
 
-    async inteviewConversation(payload: { question: string, questions: number, interviewId: string, answer: string, time: any }): Promise<any | null> {
+
+    async interviewConversation(payload: {
+        question: string;
+        questions: number;
+        interviewId: string;
+        answer: string;
+        time: Date;
+    }): Promise<string | null> {
         try {
-
             const prompt = `
-            You are a helpful and professional AI interview assistant having a real-time voice conversation with a candidate.
-            
-            The current interview question is:
-            "${payload?.question}"
-            
-            The candidate responded with:
-            "${payload?.answer}"
-            
-            If the candidate asks for clarification or to repeat the question, kindly and clearly repeat the original question exactly as it was asked.
-            
-            If the candidate struggles or gives an incomplete or unclear answer, respond kindly and offer gentle encouragement or a helpful explanation to guide them. For example, you might say:
-            "That's okay, take your time. Here's a hint to help you think it through..."
-            
-            If the candidate gives a good or partial answer, encourage them warmly like a supportive interviewer. Use phrases like:
-            "Good job! That was a solid answer." or "Thanks for sharing that! Let's keep going."
-            
-            If the answer is not clear-cut or mostly incorrect, provide the correct answer along with a helpful suggestion. Then continue to the next question.
-            
-            If the user says something like "skip" or "move to the next question", or if the answer is mostly correct, give feedback and a suggestion — then transition using the phrase "Next question".
-            
-            Keep your responses natural, concise, friendly, and easy to understand — as if speaking in real time during a live interview. Avoid any prefixes, formatting, or complex language. Use plain, spoken language.
-            
-            There are ${payload?.questions} questions remaining in the interview. Consider the remaining time ${payload?.time} left and move to the next question accordingly.
-            `;
+      You are a helpful and professional AI interview assistant having a real-time voice conversation with a candidate.
+      
+      The current interview question is:
+      "${payload.question}"
+      
+      The candidate responded with:
+      "${payload.answer}"
+      
+      If the candidate asks for clarification or to repeat the question, kindly and clearly repeat the original question exactly as it was asked.
+      
+      If the candidate struggles or gives an incomplete or unclear answer, respond kindly and offer gentle encouragement or a helpful explanation to guide them. For example, you might say:
+      "That's okay, take your time. Here's a hint to help you think it through..."
+      
+      If the candidate gives a good or partial answer, encourage them warmly like a supportive interviewer. Use phrases like:
+      "Good job! That was a solid answer." or "Thanks for sharing that! Let's keep going."
+      
+      If the answer is not clear-cut or mostly incorrect, provide the correct answer along with a helpful suggestion. Then continue to the next question.
+      
+      If the user says something like "skip" or "move to the next question", or if the answer is mostly correct, give feedback and a suggestion — then transition using the phrase "Next question".
+      
+      Keep your responses natural, concise, friendly, and easy to understand — as if speaking in real time during a live interview. Avoid any prefixes, formatting, or complex language. Use plain, spoken language.
+      
+      There are ${payload.questions} questions remaining in the interview. Consider the remaining time (${payload.time}) left and move to the next question accordingly.
+          `.trim();
 
-            const getResponse = await askGemini(prompt)
+            const getResponse = await askGemini(prompt);
 
+            if (!getResponse) return null;
 
             const createPayload = {
-                interviewId: new Types.ObjectId(payload?.interviewId),
-                question: payload?.question,
+                interviewId: new Types.ObjectId(payload.interviewId),
+                question: payload.question,
                 aiResponse: getResponse,
-                userAnswer: payload?.answer
-            }
+                userAnswer: payload.answer,
+            };
 
-            if (getResponse) {
-                const saveConversation = await this._interviewConversationRepository.create(createPayload)
+            const saveConversation = await this._interviewConversationRepository.create(createPayload);
 
-                if (saveConversation) {
-                    return getResponse
-                }
-            }
+            return saveConversation ? getResponse : null;
 
         } catch (error) {
-            console.error("Error fetching interview with user info:", error);
+            console.error("Error during interview conversation:", error);
             return null;
         }
     }
+
+
 
     async getFeedback(
         id: string
@@ -469,7 +484,7 @@ type: 'Technical/Behavioral/Experince/Problem Solving/Leaseship'
       }
       `;
 
-            const getResponse: any = await askGemini(prompt);
+            const getResponse: string = await askGemini(prompt);
 
             console.log("🧠 Raw Gemini Response:", getResponse);
 

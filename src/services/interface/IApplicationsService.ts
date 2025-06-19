@@ -2,7 +2,10 @@ import { IApplicationModel } from "../../interfaces/IApplicationModel";
 import { IJobPost } from "../../interfaces/IJobPost";
 
 export interface IApplicationsService {
-    apply(payload: any): Promise<boolean | null>
+    apply(payload: {
+        jobId: string,
+        candidateId: string
+    }): Promise<{ status: 'applied' | 'reviewed' | 'interview' | 'hired' | 'rejected' | null }>
     getAllApplications(payload: {
         page: number;
         pageSize: number;
@@ -12,7 +15,7 @@ export interface IApplicationsService {
         applications: IApplicationModel[];
         totalPages: number;
     } | null>
-    updateApplicationStatus(payload: any): Promise<boolean | null>
+    updateApplicationStatus(payload: { id: string, status: "applied" | "reviewed" | "interview" | "hired" | "rejected" }): Promise<boolean | null>
 
     getUserApplications(payload: {
         page: number;
@@ -20,7 +23,7 @@ export interface IApplicationsService {
         query: string;
         userId: string;
     }): Promise<{
-        applications: any[]; // or your proper typed output
+        applications: IApplicationModel[]; // or your proper typed output
         totalPages: number;
     } | null>
 }

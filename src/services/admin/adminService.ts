@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { FilterQuery, PipelineStage, Types } from "mongoose";
 import { IPost } from "../../interfaces/post/IPost";
 import { login } from "../../types/types";
 import { AdminErrorMessages } from "../../utils/constants";
@@ -35,12 +35,12 @@ export class AdminService implements IAdminService {
     async getPosts(
         page: number,
         pageSize: number,
-        querys?: any,
+        querys?: string,
         userId?: string,
         role?: string
     ): Promise<{ posts: IPost[]; totalPosts: number }> {
         const skip = (page - 1) * pageSize;
-        const matchStage: any = { isDeleted: false };
+        const matchStage: FilterQuery<IPost> = { isDeleted: false };
 
         if (querys) {
             matchStage.$or = [
@@ -52,7 +52,7 @@ export class AdminService implements IAdminService {
             matchStage.userId = new Types.ObjectId(userId);
         }
 
-        const pipeline: any[] = [
+        const pipeline: PipelineStage[] = [
             // Match by post-level filters first
             { $match: matchStage },
 
@@ -98,7 +98,7 @@ export class AdminService implements IAdminService {
             { $limit: pageSize },
         ];
 
-        const countPipeline: any[] = [
+        const countPipeline: PipelineStage[] = [
             { $match: matchStage },
             {
                 $lookup: {
@@ -123,42 +123,49 @@ export class AdminService implements IAdminService {
         return { posts, totalPosts };
     }
 
-    async getStatistics(): Promise<any | null> {
-        const totalCandidates = await this._userRepository.countDocuments({ role: "candidate" })
-        const totalEmployees = await this._userRepository.countDocuments({ role: "employee" })
-        const totalJobs = await this._jobPostRepository.countDocuments({ status: true })
-        const totalPosts = await this._postRepository.countDocuments({ isDeleted: false })
-        const oneMonthAgo = new Date();
+    async getStatistics(): Promise<{
+        totalCandidates: number;
+        totalEmployees: number;
+        totalJobs: number;
+        totalPosts: number;
+        lastMonthPosts: number;
+        lastMonthJobs: number;
+        lastMonthUsers: number;
+    }> {
+        const now = new Date();
+        const oneMonthAgo = new Date(now);
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-        const lastMonthPosts = await this._postRepository.countDocuments({
-            isDeleted: false,
-            createdAt: { $gte: oneMonthAgo, $lte: new Date() },
-        });
-        const lastMonthJobs = await this._jobPostRepository.countDocuments({
-            isDeleted: false,
-            createdAt: { $gte: oneMonthAgo, $lte: new Date() },
-        });
-        const lastMonthUsers = await this._userRepository.countDocuments({
-            status: false,
-            createdAt: { $gte: oneMonthAgo, $lte: new Date() },
-        });
+        const [totalCandidates, totalEmployees, totalJobs, totalPosts, lastMonthPosts, lastMonthJobs, lastMonthUsers] =
+            await Promise.all([
+                this._userRepository.countDocuments({ role: "candidate" }),
+                this._userRepository.countDocuments({ role: "employee" }),
+                this._jobPostRepository.countDocuments({ status: true }),
+                this._postRepository.countDocuments({ isDeleted: false }),
+                this._postRepository.countDocuments({
+                    isDeleted: false,
+                    createdAt: { $gte: oneMonthAgo, $lte: now },
+                }),
+                this._jobPostRepository.countDocuments({
+                    isDeleted: false,
+                    createdAt: { $gte: oneMonthAgo, $lte: now },
+                }),
+                this._userRepository.countDocuments({
+                    status: false,
+                    createdAt: { $gte: oneMonthAgo, $lte: now },
+                }),
+            ]);
 
-
-        if (totalCandidates &&
-            totalEmployees &&
-            totalJobs &&
-            totalPosts) {
-            return {
-                totalCandidates,
-                totalEmployees,
-                totalJobs,
-                totalPosts,
-                lastMonthPosts,
-                lastMonthJobs,
-                lastMonthUsers
-            }
-        }
+        return {
+            totalCandidates,
+            totalEmployees,
+            totalJobs,
+            totalPosts,
+            lastMonthPosts,
+            lastMonthJobs,
+            lastMonthUsers,
+        };
     }
+
 
 }

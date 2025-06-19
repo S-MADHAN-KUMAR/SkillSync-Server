@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { IPost } from "../../interfaces/post/IPost";
 import { IPostRepository } from "../../repositories/interface/IPostRepository";
 import { IUserRepository } from "../../repositories/interface/IUserRepository";
@@ -16,7 +16,7 @@ import { commentPayload, getRepliesPayload, replyCommentPayload } from "../../ty
 import { IReplyRepository } from "../../repositories/interface/IReplyRepository";
 import { IReply } from "../../interfaces/post/IReply";
 import { ISavePostsRepository } from "../../repositories/interface/ISavePostsRepository";
-import { ISavedPost } from "../../interfaces/post/ISavedPost";
+import { DebounceExecutor } from "../../utils/Debouncer/DebounceExecutor";
 
 export class PostService implements IPostService {
     private _postRepository: IPostRepository
@@ -39,6 +39,7 @@ export class PostService implements IPostService {
         this._savePostRepository = _savePostRepository;
     }
 
+
     async createPost(payload: Partial<IPost>, userId: string): Promise<{ response: IPost | null }> {
         console.log(payload);
 
@@ -52,15 +53,15 @@ export class PostService implements IPostService {
             throw new HttpError(UserErrorMessages.USER_NOT_FOUND, StatusCode.NOT_FOUND);
         }
 
-        const updatedPayload = {
+        const updatedPayload: Partial<IPost> & { userId: string } = {
             ...payload,
-            userId: userId
+            userId
         };
 
-        const response = await this._postRepository.create(updatedPayload);
-
-        return { response };
+        const createdPost = await this._postRepository.create(updatedPayload);
+        return { response: createdPost };
     }
+
 
     async getRecentPosts(id: string): Promise<IPost[] | null> {
         const response = await this._postRepository.findRecentPosts(id)
@@ -71,31 +72,30 @@ export class PostService implements IPostService {
         }
     }
 
-    async getAllPosts(payload: { id: string, role: string }): Promise<IPost[] | null> {
+    async getAllPosts(payload: { id: string; role: string }): Promise<IPost[]> {
+        const key = `posts-${payload.id}-${payload.role}`;
 
-        const response = await this._postRepository.findAllPosts(payload)
-        if (response) {
-            return response
-        } else {
-            throw new HttpError(PostErrorMessages.POST_NOT_FOUND, StatusCode.NOT_FOUND)
-        }
+
+        const response = await this._postRepository.findAllPosts(payload);
+
+        return response
     }
 
-    async getUserPosts(page: number,
+    async getUserPosts(
+        page: number,
         pageSize: number,
-        querys?: string, userId?: string): Promise<{ posts: IPost[]; totalPosts: number | null }> {
-
+        querys?: string,
+        userId?: string
+    ): Promise<{ posts: IPost[]; totalPosts: number | null }> {
         const skip = (page - 1) * pageSize;
-        const filter: any = {
+        const filter: FilterQuery<IPost> = { // Corrected to FilterQuery<IPost>
             userId: userId,
-            // isDeleted: false,
-            status: true
+            status: true,
         };
 
         if (querys) {
             filter.posterName = { $regex: querys, $options: 'i' };
         }
-
         const posts = await this._postRepository.findAll(filter, skip, pageSize);
         const totalPosts = await this._postRepository.countDocuments(filter);
 
@@ -105,6 +105,9 @@ export class PostService implements IPostService {
             throw new HttpError(PostErrorMessages.POST_NOT_FOUND, StatusCode.NOT_FOUND);
         }
     }
+
+
+
 
     async getPost(id: string): Promise<IPost | null> {
         const response = await this._postRepository.findById(id)
@@ -470,20 +473,30 @@ export class PostService implements IPostService {
         }
     }
 
-    async getAllSavedPosts(page: number,
+    async getAllSavedPosts(
+        page: number,
         pageSize: number,
         userId: string,
         querys: string,
         role: string
-    ): Promise<{ posts: ISavedPost[]; totalPosts: number | null }> {
-        const response = await this._postRepository.findAllSavedPosts({ id: userId, page, pageSize, role, querys })
-        if (response) {
-            return {
-                posts: response.posts, totalPosts: response.totalPosts
-            }
-        } else {
-            throw new HttpError(PostErrorMessages.POST_NOT_FOUND, StatusCode.NOT_FOUND)
+    ): Promise<{ posts: IPost[]; totalPosts: number }> {
+        const response: { posts: IPost[]; totalPosts: number } | null =
+            await this._postRepository.findAllSavedPosts({
+                id: userId,
+                page,
+                pageSize,
+                role,
+                querys,
+            });
+
+        if (!response) {
+            throw new HttpError(PostErrorMessages.POST_NOT_FOUND, StatusCode.NOT_FOUND);
         }
+
+        return {
+            posts: response.posts,
+            totalPosts: response.totalPosts,
+        };
     }
 
 

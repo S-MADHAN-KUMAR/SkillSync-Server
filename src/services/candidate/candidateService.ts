@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
 import { IUser } from "../../interfaces/IUser";
 import candidateProfileModel from "../../models/candidateProfileModel";
@@ -132,7 +132,7 @@ export class CandidateService implements ICandidateService {
         location?: string,
         omit?: string,
         userId?: string
-    ): Promise<{ candidates: any[]; totalCandidates: number }> {
+    ): Promise<{ candidates: ICandidateProfile[]; totalCandidates: number }> {
 
         const { candidates, totalCandidates } = await this._candidateRepository.findAllCandidates(page,
             pageSize,
@@ -197,7 +197,7 @@ export class CandidateService implements ICandidateService {
         const objectUserId = new Types.ObjectId(id);
         const skip = (page - 1) * pageSize;
 
-        const pipeline: any[] = [
+        const pipeline: PipelineStage[] = [
             {
                 $match: {
                     userId: objectUserId,
@@ -248,19 +248,26 @@ export class CandidateService implements ICandidateService {
         return { jobs, totalJobs };
     }
 
-    async getStatistics(id: string): Promise<any | null> {
-        const totalSavedJobs = await this._savedJobsRepository.countDocuments({ userId: id })
-        const totalApplications = await this._applicationRepository.countDocuments({ candidateId: id })
-        const totalSavedCandidates = await this._connectionRepository.countDocuments({ userId: id, status: "accepted" })
 
-        if (totalSavedJobs &&
-            totalApplications &&
-            totalSavedCandidates) {
+
+    async getStatistics(id: string): Promise<{
+        totalJobs: number,
+        savedPosts: number,
+        savedCandidates: number
+    } | null> {
+        try {
+            const totalJobs = await this._savedJobsRepository.countDocuments({ userId: id });
+            const savedPosts = await this._applicationRepository.countDocuments({ candidateId: id });
+            const savedCandidates = await this._connectionRepository.countDocuments({ userId: id, status: "accepted" });
+
             return {
-                totalSavedJobs,
-                totalApplications,
-                totalSavedCandidates
-            }
+                totalJobs,
+                savedPosts,
+                savedCandidates
+            };
+        } catch (error) {
+            console.error("Failed to fetch statistics:", error);
+            return null;
         }
     }
 

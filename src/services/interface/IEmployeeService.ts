@@ -31,7 +31,7 @@ export interface IEmployeeService {
     ): Promise<{ jobs: IJobPost[]; totalJobs: number }>
     updateJob(payload: IJobPost, id: string): Promise<IJobPost | null>
     toggleStatus(id: string, status: boolean): Promise<Boolean | null>
-    getJob(payload: { id: string, userId: string }): Promise<any>
+    getJob(payload: { id: string, userId: string }): Promise<IJobPost[] | IJobPost>
     getEmployeeDetail(id: string): Promise<IEmployeeProfile>
     getAllEmployees(
         page: number,
@@ -39,6 +39,10 @@ export interface IEmployeeService {
         querys?: string,
         location?: string,
         omit?: string
-    ): Promise<{ employees: any[]; totalEmployees: number }>
-    getStatistics(id: string): Promise<any | null>
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }>
+    getStatistics(id: string): Promise<{
+        totalJobs: number,
+        savedPosts: number,
+        savedCandidates: number
+    } | null>
 }

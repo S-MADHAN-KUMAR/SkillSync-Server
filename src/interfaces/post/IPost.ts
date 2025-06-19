@@ -4,7 +4,8 @@ import { Roles } from "../../utils/enums";
 export interface IPost extends Document {
     userId: Types.ObjectId | string;
     role: Roles.EMPLOYEE | Roles.CANDIDATE | Roles.ADMIN;
-    posterName: string;
+    posterName?: string;
+    _id: Types.ObjectId | string
     posterAvatar?: string;
     description: string;
     imageUrls?: string[];

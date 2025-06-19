@@ -18,6 +18,7 @@ export class ApplicationsController implements IApplicationsControllers {
             if (response) {
                 res.status(StatusCode.OK).json({
                     success: true,
+                    status: response.status,
                     message: "Applied Successfully!"
                 });
             }

@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import { IEmployeeProfile } from "../../interfaces/IEmployeeProfile";
 import employeeProfileModel from "../../models/employeeProfileModel";
 import { GenericRepository } from "../genericRepository";
@@ -22,9 +22,9 @@ export class EmployeeRepository
         querys?: string,
         location?: string,
         omit?: string
-    ): Promise<{ employees: any[]; totalEmployees: number }> {
+    ): Promise<{ employees: IEmployeeProfile[]; totalEmployees: number }> {
         const skip = (page - 1) * pageSize;
-        const match: any = {};
+        const match: Record<string, unknown> = {};
 
         if (querys) {
             match.companyName = { $regex: querys, $options: "i" };
@@ -36,7 +36,7 @@ export class EmployeeRepository
 
         const omitObjectId = omit ? new mongoose.Types.ObjectId(omit) : null;
 
-        const pipeline: any[] = [
+        const pipeline: PipelineStage[] = [
             { $match: match },
 
             ...(omit ? [{ $match: { userId: { $ne: omitObjectId } } }] : []),

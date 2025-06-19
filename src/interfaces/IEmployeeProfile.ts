@@ -6,6 +6,8 @@ export interface IEmployeeProfile extends Document {
     banner?: string;
     companyName: string;
     aboutCompany: string;
+    name?: string;
+    profile?: string
     teamSize: number;
     companyType: 'Private' | 'Public' | 'Startup' | 'Non-Profit';
     industryTypes: string;

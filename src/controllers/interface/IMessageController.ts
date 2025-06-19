@@ -1,3 +1,5 @@
+import { Response, Request } from "express";
+
 export interface IMessageController {
-    getUserMessages(req: any, res: any): Promise<void>
+    getUserMessages(req: Request, res: Response): Promise<void>
 }

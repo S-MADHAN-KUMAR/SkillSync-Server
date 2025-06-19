@@ -37,10 +37,17 @@ export interface IPostService {
         postId: string
     }): Promise<boolean | null>
     removeSavePost(id: string): Promise<boolean | null>
-    getAllSavedPosts(page: number,
+    // getAllSavedPosts(page: number,
+    //     pageSize: number,
+    //     userId: string,
+    //     querys: string,
+    //     role: string
+    // ): Promise<{ posts: ISavedPost[]; totalPosts: number | null }>
+    getAllSavedPosts(
+        page: number,
         pageSize: number,
         userId: string,
         querys: string,
         role: string
-    ): Promise<{ posts: ISavedPost[]; totalPosts: number | null }>
+    ): Promise<{ posts: IPost[]; totalPosts: number }>
 }

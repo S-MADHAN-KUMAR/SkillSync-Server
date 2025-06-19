@@ -1,7 +1,8 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export interface IJobPost extends Document {
     jobTitle: string;
+    _id: string | Types.ObjectId;
     logo: string;
     tags: string[];
     minSalary: number;

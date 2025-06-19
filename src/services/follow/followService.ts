@@ -6,6 +6,10 @@ import { FollowRequest, IFollowService } from "../interface/IFollowService";
 import { io, userSocketMap } from "../..";
 import { NotificationType } from "../../interfaces/INotification";
 import { IEmployeeRepository } from "../../repositories/interface/IEmployeeRepository";
+import { ICandidateProfile } from "../../interfaces/ICandidateProfile";
+import { IUser } from "../../interfaces/IUser";
+import { IEmployeeProfile } from "../../interfaces/IEmployeeProfile";
+import { ICandidateRepository } from "../../repositories/interface/ICandidateRepository";
 
 export class FollowService implements IFollowService {
     private _followRepository: IFollowRepository;
@@ -86,7 +90,7 @@ export class FollowService implements IFollowService {
 
             const userType = response.userType === 'candidate' ? "company" : "candidate"
             const socketId = userSocketMap.get(payload.followingId);
-            let senderProfile: any;
+            let senderProfile: ICandidateProfile | IEmployeeProfile | IUser | null
 
             if (userType === 'candidate') {
                 senderProfile = await this._userRepository.findById(payload.userId);
@@ -112,7 +116,11 @@ export class FollowService implements IFollowService {
                 createdAt: new Date(),
             };
 
-            const notification = await this._notificationRepository.create(notificationPayload);
+            const filteredAttachments = attachments.filter((a): a is string => typeof a === 'string');
+            const notification = await this._notificationRepository.create({
+                ...notificationPayload,
+                attachments: filteredAttachments,
+            });
             await this._notificationRepository.delete(notificationObjectId.toString())
 
             if (socketId && notification) {
@@ -133,6 +141,7 @@ export class FollowService implements IFollowService {
         }
     }
 
+
     async cancel(payload: FollowRequest): Promise<boolean | null> {
         try {
             const userObjectId = new Types.ObjectId(payload.userId);
@@ -140,64 +149,75 @@ export class FollowService implements IFollowService {
             const notificationObjectId = new Types.ObjectId(payload.notificationId);
 
             const response = await this._followRepository.findOneAndUpdate(
-                { $and: [{ userId: userObjectId }, { followingId: followingUserObjectId }] },
+                { userId: userObjectId, followingId: followingUserObjectId },
                 { status: 'rejected' }
             );
 
-            if (response) {
-                const socketId = userSocketMap.get(followingUserObjectId.toString());
-                const userType = response.userType === 'candidate' ? "company" : "candidate"
+            if (!response) return false;
 
-                let connectedUser: any
+            const socketId = userSocketMap.get(followingUserObjectId.toString());
+            const userType = response.userType === 'candidate' ? "company" : "candidate";
 
-                if (userType === 'candidate') {
-                    connectedUser = await this._userRepository.findById(payload.userId);
-                } else {
-                    connectedUser = await this._profileRepository.findOne({ userId: payload.userId });
-                }
-                const content = userType === 'candidate'
-                    ? connectedUser?.name
-                    : connectedUser?.companyName;
+            type ConnectedUser = IUser | IEmployeeProfile;
+            let connectedUser: ConnectedUser | null;
 
-                const attachments = userType === 'candidate'
-                    ? [connectedUser?.profile]
-                    : [connectedUser?.logo, connectedUser?.banner];
-
-                const notificationPayload = {
-                    recipientId: new Types.ObjectId(followingUserObjectId),
-                    senderId: new Types.ObjectId(userObjectId),
-                    content: `${content} Rejected your Follow request`,
-                    read: false,
-                    type: "follow-rejected" as NotificationType,
-                    attachments,
-                    createdAt: new Date(),
-                };
-
-
-                await this._notificationRepository.delete(notificationObjectId.toString())
-                const notification = await this._notificationRepository.create(notificationPayload);
-
-                if (socketId && notification) {
-                    io.to(socketId).emit("notification", {
-                        content: notification.content,
-                        image: notification.attachments,
-                        title: "Request Rejected",
-                        senderId: userObjectId,
-                    });
-
-                    console.log(`Notification sent to user ${followingUserObjectId.toString()}`);
-                    return true;
-                } else {
-                    return false;
-                }
+            if (userType === 'candidate') {
+                connectedUser = await this._userRepository.findById(payload.userId);
             } else {
-                return false;
+                connectedUser = await this._profileRepository.findOne({ userId: payload.userId });
             }
+
+            if (!connectedUser) return false;
+
+            const content = userType === 'candidate'
+                ? (connectedUser as IUser).name
+                : (connectedUser as IEmployeeProfile).companyName;
+
+            const attachments = userType === 'candidate'
+                ? [(connectedUser as IUser).profile]
+                : [
+                    (connectedUser as IEmployeeProfile).logo,
+                    (connectedUser as IEmployeeProfile).banner,
+                ];
+
+            const filteredAttachments = attachments.filter((a): a is string => typeof a === 'string');
+
+            const notificationPayload = {
+                recipientId: followingUserObjectId,
+                senderId: userObjectId,
+                content: `${content} rejected your follow request`,
+                read: false,
+                type: "follow-rejected" as NotificationType,
+                attachments: filteredAttachments,
+                createdAt: new Date(),
+            };
+
+            await this._notificationRepository.delete(notificationObjectId.toString());
+            const filteredRejectedAttachments = notificationPayload.attachments.filter((a): a is string => typeof a === 'string');
+            const notification = await this._notificationRepository.create({
+                ...notificationPayload,
+                attachments: filteredRejectedAttachments,
+            });
+
+            if (socketId && notification) {
+                io.to(socketId).emit("notification", {
+                    content: notification.content,
+                    image: notification.attachments,
+                    title: "Request Rejected",
+                    senderId: userObjectId,
+                });
+
+                console.log(`Notification sent to user ${followingUserObjectId.toString()}`);
+                return true;
+            }
+
+            return false;
         } catch (error) {
-            console.log(error);
+            console.error("Error in cancel():", error);
             return false;
         }
     }
+
 
     async unfollow(payload: FollowRequest): Promise<boolean | null> {
         try {
@@ -214,7 +234,7 @@ export class FollowService implements IFollowService {
 
             const userType = payload.userType
             const socketId = userSocketMap.get(payload.userId);
-            let senderProfile: any;
+            let senderProfile: IUser | IEmployeeProfile | null
 
             if (userType === 'candidate') {
                 senderProfile = await this._userRepository.findById(payload.followingId);
@@ -240,7 +260,11 @@ export class FollowService implements IFollowService {
                 createdAt: new Date(),
             };
 
-            const notification = await this._notificationRepository.create(notificationPayload);
+            const filteredAttachments = attachments.filter((a): a is string => typeof a === 'string');
+            const notification = await this._notificationRepository.create({
+                ...notificationPayload,
+                attachments: filteredAttachments,
+            });
             await this._notificationRepository.delete(notificationObjectId.toString())
 
             if (socketId && notification) {
@@ -269,7 +293,7 @@ export class FollowService implements IFollowService {
         userType: string
     ) {
         const socketId = userSocketMap.get(payload.followingId);
-        let senderProfile: any;
+        let senderProfile: IUser | IEmployeeProfile | null
 
         if (userType === 'candidate') {
             senderProfile = await this._userRepository.findById(payload.userId);
@@ -285,13 +309,15 @@ export class FollowService implements IFollowService {
             ? [senderProfile?.profile]
             : [senderProfile?.logo, senderProfile?.banner];
 
+        const filteredAttachments = attachments.filter((a): a is string => typeof a === 'string');
+
         const notificationPayload = {
             recipientId: followingUserObjectId,
             senderId: userObjectId,
             content: `${content} ${userType} wants to follow you`,
             read: false,
             type: 'follow' as NotificationType,
-            attachments,
+            attachments: filteredAttachments,
             createdAt: new Date(),
         };
 
