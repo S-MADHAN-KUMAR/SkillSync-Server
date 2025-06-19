@@ -290,13 +290,13 @@ export class UserController implements IUserController {
 
             res
                 .cookie(`${user?.role}Token`, tokens.accessToken, {
-                    httpOnly: true,
+                    httpOnly: false,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'none',
                     maxAge: 15 * 60 * 1000,
                 })
                 .cookie('refreshToken', tokens.refreshToken, {
-                    httpOnly: true,
+                    httpOnly: false,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'none',
                     maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -334,7 +334,7 @@ export class UserController implements IUserController {
             });
 
             res.cookie(`${payload.role}Token`, tokens.accessToken, {
-                httpOnly: true,
+                httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'none',
                 maxAge: 15 * 60 * 1000,
