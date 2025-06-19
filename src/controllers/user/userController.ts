@@ -46,13 +46,13 @@ export class UserController implements IUserController {
                     .cookie(`${user.role}Token`, tokens.accessToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
-                        sameSite: 'strict',
+                        sameSite: 'none',
                         maxAge: 15 * 60 * 1000, // 15 minutes
                     })
                     .cookie('refreshToken', tokens.refreshToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
-                        sameSite: 'strict',
+                        sameSite: 'none',
                         maxAge: 7 * 24 * 60 * 60 * 1000,
                     })
                     .status(StatusCode.OK)
@@ -115,13 +115,13 @@ export class UserController implements IUserController {
                     .cookie(`${response.role}Token`, tokens.accessToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
-                        sameSite: 'strict',
+                        sameSite: 'none',
                         maxAge: 15 * 60 * 1000, // 15 minutes
                     })
                     .cookie('refreshToken', tokens.refreshToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
-                        sameSite: 'strict',
+                        sameSite: 'none',
                         maxAge: 7 * 24 * 60 * 60 * 1000,
                     })
                     .status(StatusCode.OK)
@@ -263,12 +263,12 @@ export class UserController implements IUserController {
         res.clearCookie(`${role}Token`, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
         });
         res.clearCookie('refreshToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
         });
 
         res.status(StatusCode.OK).json({
@@ -292,13 +292,13 @@ export class UserController implements IUserController {
                 .cookie(`${user?.role}Token`, tokens.accessToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'strict',
+                    sameSite: 'none',
                     maxAge: 15 * 60 * 1000,
                 })
                 .cookie('refreshToken', tokens.refreshToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'strict',
+                    sameSite: 'none',
                     maxAge: 7 * 24 * 60 * 60 * 1000,
                 })
                 .status(StatusCode.OK)
@@ -336,7 +336,7 @@ export class UserController implements IUserController {
             res.cookie(`${payload.role}Token`, tokens.accessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'none',
                 maxAge: 15 * 60 * 1000,
             });
 
