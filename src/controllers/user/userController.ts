@@ -290,15 +290,15 @@ export class UserController implements IUserController {
 
             res
                 .cookie(`${user?.role}Token`, tokens.accessToken, {
-                    httpOnly: false,
+                    httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'none',
+                    sameSite: 'strict',
                     maxAge: 15 * 60 * 1000,
                 })
                 .cookie('refreshToken', tokens.refreshToken, {
-                    httpOnly: false,
+                    httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'none',
+                    sameSite: 'strict',
                     maxAge: 7 * 24 * 60 * 60 * 1000,
                 })
                 .status(StatusCode.OK)
@@ -320,13 +320,12 @@ export class UserController implements IUserController {
         }
     }
 
-    async refreshToken(req: Request, res: Response): Promise<void> {
+    async refreshToken(req: Request, res: Response): Promise<void | any> {
         const token = req.cookies.refreshToken;
-        if (!token) res.sendStatus(StatusCode.UNAUTHORIZED);
+        if (!token) return res.sendStatus(StatusCode.UNAUTHORIZED);
 
         try {
-
-            const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as JwtPayload;
+            const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as any;
 
             const tokens = generateTokens({
                 id: payload.id,
@@ -334,9 +333,9 @@ export class UserController implements IUserController {
             });
 
             res.cookie(`${payload.role}Token`, tokens.accessToken, {
-                httpOnly: false,
+                httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'none',
+                sameSite: 'strict',
                 maxAge: 15 * 60 * 1000,
             });
 
@@ -345,7 +344,7 @@ export class UserController implements IUserController {
             res.clearCookie("CandidateToken");
             res.clearCookie("EmployeeToken");
             res.clearCookie("AdminToken");
-            res.sendStatus(StatusCode.FORBIDDEN);
+            return res.sendStatus(StatusCode.FORBIDDEN);
         }
     }
 
